@@ -1,0 +1,179 @@
+from django.shortcuts import render
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from rest_framework import generics, permissions
+from rest_framework.decorators import permission_classes
+
+from rest_framework.views import APIView
+from rest_framework import status
+
+from .models import SupplierProfile, ConsumerProfile, ConsumerSupplierLink, SupplierStaff
+from .serializers import UserSerializer, SupplierProfileSerializer
+
+from rest_framework.exceptions import ValidationError
+
+from .models import SupplierProfile, ConsumerProfile, ConsumerSupplierLink, SupplierStaff
+from .serializers import (
+    UserSerializer,
+    SupplierProfileSerializer,
+    ConsumerProfileSerializer,
+    ConsumerSupplierLinkSerializer,
+)
+
+
+# Create your views here.
+@api_view(['GET'])
+def api_health(request):
+    """
+    Простой endpoint, чтобы проверить, что API работает.
+    """
+    return Response({
+        "status": "ok",
+        "message": "SCP backend API is running"
+    })
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def me(request):
+    """
+    Вернуть информацию о текущем залогиненном пользователе.
+    """
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
+
+class SupplierListView(generics.ListAPIView):
+    """
+    Список всех верифицированных поставщиков.
+    Для теста: ты будешь создавать SupplierProfile через админку.
+    """
+    queryset = SupplierProfile.objects.filter(is_verified=True)
+    serializer_class = SupplierProfileSerializer
+    permission_classes = [permissions.AllowAny]  # пока открыто всем
+
+class ConsumerSupplierLinkListCreateView(generics.ListCreateAPIView):
+    """
+    GET: список линков текущего пользователя.
+    POST: создать запрос на линк (consumer -> supplier).
+    URL: /api/accounts/links/
+    """
+    serializer_class = ConsumerSupplierLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # если пользователь — consumer
+        if hasattr(user, 'consumerprofile'):
+            return ConsumerSupplierLink.objects.filter(
+                consumer=user.consumerprofile
+            ).select_related('consumer', 'supplier')
+
+        # если пользователь — сотрудник поставщика (Owner/Manager/Sales)
+        staff_links = SupplierStaff.objects.filter(user=user).select_related('supplier')
+        supplier_ids = [s.supplier_id for s in staff_links]
+        if supplier_ids:
+            return ConsumerSupplierLink.objects.filter(
+                supplier_id__in=supplier_ids
+            ).select_related('consumer', 'supplier')
+
+        # если суперюзер / админ — можно всё
+        if user.is_superuser:
+            return ConsumerSupplierLink.objects.all().select_related('consumer', 'supplier')
+
+        # по умолчанию — пусто
+        return ConsumerSupplierLink.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        # 1) ищем ConsumerProfile по user
+        try:
+            consumer_profile = ConsumerProfile.objects.get(user=user)
+        except ConsumerProfile.DoesNotExist:
+            raise ValidationError("У текущего пользователя нет ConsumerProfile, он не может создавать запросы.")
+
+        # 2) можно дополнительно проверить, что это именно consumer
+        # если в User есть поле user_type:
+        # if user.user_type != 'consumer':
+        #     raise ValidationError("Только потребители могут отправлять запрос на линк.")
+
+        supplier = serializer.validated_data.get('supplier')
+
+        # 3) проверяем, нет ли уже активного/ожидающего линка
+        existing = ConsumerSupplierLink.objects.filter(
+            consumer=consumer_profile,
+            supplier=supplier
+        ).exclude(status='rejected')  # rejected считаем “историей”
+
+        if existing.exists():
+            raise ValidationError("Линк между этим потребителем и поставщиком уже существует или в ожидании.")
+
+        # 4) создаём линк со статусом по умолчанию (обычно pending)
+        serializer.save(consumer=consumer_profile)
+
+class BaseLinkActionView(APIView):
+    """
+    Базовый класс для действий над линком (approve/reject/block).
+    Проверяет, что текущий пользователь связан с поставщиком.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    new_status = None  # переопределяется в наследниках
+
+    def post(self, request, pk):
+        # 1) ищем линк
+        try:
+            link = ConsumerSupplierLink.objects.select_related('supplier').get(pk=pk)
+        except ConsumerSupplierLink.DoesNotExist:
+            return Response({"detail": "Link not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+
+        # 2) проверяем, что пользователь — staff этого поставщика
+        staff_links = SupplierStaff.objects.filter(user=user, supplier=link.supplier)
+        if not staff_links.exists() and not user.is_superuser:
+            return Response(
+                {"detail": "Вы не связаны с этим поставщиком и не можете менять статус линка."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # 3) меняем статус
+        if self.new_status is None:
+            return Response({"detail": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+
+        old_status = link.status
+        link.status = self.new_status
+        link.save()
+
+        return Response(
+            {
+                "id": link.id,
+                "old_status": old_status,
+                "new_status": link.status,
+                "consumer": link.consumer_id,
+                "supplier": link.supplier_id,
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class ApproveLinkView(BaseLinkActionView):
+    """
+    Поставщик одобряет линк (consumer получает доступ к каталогу).
+    """
+    new_status = 'accepted'
+
+
+class RejectLinkView(BaseLinkActionView):
+    """
+    Поставщик отклоняет запрос.
+    """
+    new_status = 'rejected'
+
+
+class BlockLinkView(BaseLinkActionView):
+    """
+    Поставщик блокирует потребителя (например, после инцидентов).
+    """
+    new_status = 'blocked'
