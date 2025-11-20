@@ -1,0 +1,20 @@
+# Папка с виртуальным окружением
+venv/
+
+# Логи
+*.log
+
+# База данных (sqlite, если использовал)
+*.sqlite3
+
+# Папка с миграциями, если они не были сгенерированы в Docker
+*.pyc
+*.pyo
+
+# Docker контейнеры и volumes
+.docker/
+docker-compose.override.yml
+
+# Настройки IDE (например, для VS Code)
+.vscode/
+.idea/
