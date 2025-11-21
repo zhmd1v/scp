@@ -7,7 +7,9 @@ from .views import (
     ApproveLinkView,
     RejectLinkView,
     BlockLinkView,
+    ConsumerRegisterView,
 )
+
 
 urlpatterns = [
     path('health/', api_health, name='api-health'),
@@ -19,5 +21,5 @@ urlpatterns = [
     path('links/<int:pk>/approve/', ApproveLinkView.as_view(), name='link-approve'),
     path('links/<int:pk>/reject/', RejectLinkView.as_view(), name='link-reject'),
     path('links/<int:pk>/block/', BlockLinkView.as_view(), name='link-block'),
-
+    path('register/', ConsumerRegisterView.as_view(), name='consumer-register'),
 ]

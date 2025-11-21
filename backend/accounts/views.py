@@ -1,24 +1,20 @@
 from django.shortcuts import render
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-from rest_framework import generics, permissions
-from rest_framework.decorators import permission_classes
-
-from rest_framework.views import APIView
-from rest_framework import status
-
-from .models import SupplierProfile, ConsumerProfile, ConsumerSupplierLink, SupplierStaff
-from .serializers import UserSerializer, SupplierProfileSerializer
-
+from django.contrib.auth import get_user_model
+from rest_framework import generics, permissions, status
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import SupplierProfile, ConsumerProfile, ConsumerSupplierLink, SupplierStaff
+from .models import ConsumerProfile, ConsumerSupplierLink, SupplierProfile, SupplierStaff
 from .serializers import (
-    UserSerializer,
-    SupplierProfileSerializer,
     ConsumerProfileSerializer,
+    ConsumerRegisterSerializer,
     ConsumerSupplierLinkSerializer,
+    SupplierProfileSerializer,
+    UserSerializer,
 )
 
 
@@ -177,3 +173,94 @@ class BlockLinkView(BaseLinkActionView):
     Поставщик блокирует потребителя (например, после инцидентов).
     """
     new_status = 'blocked'
+
+
+class ConsumerRegisterView(generics.CreateAPIView):
+    """
+    POST /api/accounts/register/
+    Регистрация нового consumer-пользователя (ресторан/отель).
+    Возвращает user + token + consumer_profile.
+    """
+    serializer_class = ConsumerRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        # создаём или берём существующий токен
+        token, _ = Token.objects.get_or_create(user=user)
+
+        consumer_profile = ConsumerProfile.objects.get(user=user)
+
+        data = {
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "token": token.key,
+            "consumer_profile": {
+                "id": consumer_profile.id,
+                "business_name": consumer_profile.business_name,
+                "business_type": consumer_profile.business_type,
+                "city": consumer_profile.city,
+                "address": getattr(consumer_profile, "address", ""),
+            },
+        }
+
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class EmailOrUsernameAuthTokenView(ObtainAuthToken):
+    """
+    Custom token view that lets users authenticate with either username or email.
+    Since our User model uses email as USERNAME_FIELD, this view properly handles authentication.
+    """
+
+    def post(self, request, *args, **kwargs):
+        identifier = request.data.get("username") or request.data.get("email")
+        password = request.data.get("password")
+
+        if not identifier or not password:
+            return Response(
+                {"detail": "Both username/email and password are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        UserModel = get_user_model()
+        user = None
+
+        # Try matching by email first (this is our USERNAME_FIELD)
+        if "@" in identifier:
+            try:
+                user = UserModel.objects.get(email__iexact=identifier.strip())
+            except UserModel.DoesNotExist:
+                pass
+        
+        # Fall back to username lookup
+        if user is None:
+            try:
+                user = UserModel.objects.get(username__iexact=identifier.strip())
+            except UserModel.DoesNotExist:
+                return Response(
+                    {"detail": "Unable to log in with provided credentials."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Check password
+        if not user.check_password(password):
+            return Response(
+                {"detail": "Unable to log in with provided credentials."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # User authenticated successfully, return token
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            "token": token.key,
+            "user_id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "user_type": user.user_type,
+        })
