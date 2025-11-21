@@ -18,6 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -26,19 +27,46 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _submit(AuthProvider auth) {
-    if (!_formKey.currentState!.validate()) return;
-
-    final role = auth.selectedRole ?? 'consumer';
-
-    if (role == 'supplier') {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const SupplierDashboard()),
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ConsumerDashboard()),
+  }
+
+  Future<void> _submit(AuthProvider auth) async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await auth.login(
+        identifier: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+
+      if (!mounted) return;
+      final role = auth.selectedRole ?? 'consumer';
+      if (role == 'supplier') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const SupplierDashboard()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ConsumerDashboard()),
+        );
+      }
+    } on AuthException catch (e) {
+      _showSnackBar(e.message);
+    } catch (e) {
+      _showSnackBar('Login failed: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -114,18 +142,14 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 32),
                         TextFormField(
                           controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
+                          keyboardType: TextInputType.text,
                           decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
+                            labelText: 'Email or Username',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Enter your email';
-                            }
-                            final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-                            if (!emailRegex.hasMatch(value)) {
-                              return 'Enter a valid email';
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Enter your email or username';
                             }
                             return null;
                           },
@@ -160,20 +184,31 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: () => _submit(auth),
+                          onPressed: _isSubmitting ? null : () => _submit(auth),
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(40),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 12),
                         TextButton(

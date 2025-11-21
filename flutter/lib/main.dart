@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'features/auth/presentation/pages/welcome_page.dart';
 import 'providers/auth_provider.dart';
+import 'providers/supplier_context.dart';
 
 void main() {
   runApp(const SCPApp());
@@ -61,7 +62,10 @@ class SCPApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SupplierContext()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Supplier Consumer Platform',

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../providers/auth_provider.dart';
+import '../../data/supplier_api_service.dart';
+import '../../data/supplier_models.dart';
 import 'supplier_chat_page.dart';
 import 'supplier_home_shell.dart';
 
@@ -11,34 +15,33 @@ class SupplierChatListPage extends StatefulWidget {
 }
 
 class _SupplierChatListPageState extends State<SupplierChatListPage> {
-  int _selectedTab = 0;
+  final SupplierApiService _api = SupplierApiService();
+  late Future<_ChatLists> _chatFuture;
+  _ChatTab _tab = _ChatTab.conversations;
 
-  final List<_ChatSummary> _activeChats = [
-    _ChatSummary(
-      name: 'Restaurant A',
-      lastMessage: 'Can you deliver 5kg salmon?',
-      time: '12:45',
-      role: 'Consumer',
-    ),
-    _ChatSummary(
-      name: 'Hotel SunRise',
-      lastMessage: 'Thank you! Waiting for delivery.',
-      time: '11:10',
-      role: 'Consumer',
-    ),
-    _ChatSummary(
-      name: 'Aigerim • Manager',
-      lastMessage: 'Sales rep escalated complaint #145',
-      time: 'Yesterday',
-      role: 'Manager',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _chatFuture = _loadData();
+  }
 
-  final List<_Contact> _linkedContacts = [
-    _Contact(name: 'Grand Plaza Hotel', role: 'Consumer'),
-    _Contact(name: 'Bistro Nomad', role: 'Consumer'),
-    _Contact(name: 'Aidyn • Owner', role: 'Owner'),
-  ];
+  Future<_ChatLists> _loadData() async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      throw const AuthException('You are not authenticated.');
+    }
+    final conversations = await _api.fetchConversations(token: token);
+    final links = await _api.fetchConsumerLinks(token: token);
+    return _ChatLists(conversations: conversations, links: links);
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _chatFuture = _loadData();
+    });
+    await _chatFuture;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,51 +52,171 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
         children: [
           const SizedBox(height: 16),
           _ChatTabs(
-            selectedIndex: _selectedTab,
-            onChanged: (value) => setState(() => _selectedTab = value),
+            currentTab: _tab,
+            onChanged: (value) => setState(() => _tab = value),
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: _selectedTab == 0
-                ? _buildActiveChats(context)
-                : _buildLinkedConsumers(context),
+            child: FutureBuilder<_ChatLists>(
+              future: _chatFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return _ErrorState(
+                    message: snapshot.error.toString(),
+                    onRetry: _refresh,
+                  );
+                }
+                final data = snapshot.data;
+                if (data == null) {
+                  return const _EmptyState(message: 'No chat data yet.');
+                }
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: _tab == _ChatTab.conversations
+                      ? _ConversationList(conversations: data.conversations)
+                      : _LinkList(links: data.links),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildActiveChats(BuildContext context) {
+class _ConversationList extends StatelessWidget {
+  const _ConversationList({required this.conversations});
+
+  final List<SupplierConversation> conversations;
+
+  @override
+  Widget build(BuildContext context) {
+    if (conversations.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 120),
+          _EmptyState(message: 'No active conversations yet.'),
+        ],
+      );
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _activeChats.length,
+      itemCount: conversations.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
-        final chat = _activeChats[index];
-        return _ChatTile(
-          summary: chat,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SupplierChatPage(
-                  customerName: chat.name,
-                  subtitle: chat.role,
-                ),
-              ),
-            );
-          },
-        );
+        final conversation = conversations[index];
+        return _ConversationTile(conversation: conversation);
       },
     );
   }
+}
 
-  Widget _buildLinkedConsumers(BuildContext context) {
+class _ConversationTile extends StatelessWidget {
+  const _ConversationTile({required this.conversation});
+
+  final SupplierConversation conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final updatedAt = conversation.updatedAt;
+    final subtitle = updatedAt != null
+        ? '${conversation.subtitle} • ${_formatDateTime(updatedAt)}'
+        : conversation.subtitle;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SupplierChatPage(
+              conversationId: conversation.id,
+              customerName: conversation.displayName,
+              subtitle: conversation.subtitle,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: const Color(0xFFA7E1D5),
+              child: Text(
+                conversation.displayName.substring(0, 1),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF21545F),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    conversation.displayName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E3E46),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF21545F)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LinkList extends StatelessWidget {
+  const _LinkList({required this.links});
+
+  final List<SupplierLink> links;
+
+  @override
+  Widget build(BuildContext context) {
+    if (links.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 120),
+          _EmptyState(message: 'No linked consumers yet.'),
+        ],
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _linkedContacts.length,
+      itemCount: links.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
-        final contact = _linkedContacts[index];
+        final link = links[index];
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -113,7 +236,7 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
                 radius: 26,
                 backgroundColor: const Color(0xFFDDE8EB),
                 child: Text(
-                  contact.name.substring(0, 1),
+                  (link.consumerId ?? link.id).toString().substring(0, 1),
                   style: const TextStyle(
                     color: Color(0xFF21545F),
                     fontSize: 18,
@@ -127,7 +250,7 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      contact.name,
+                      link.consumerName ?? 'Consumer #${link.consumerId}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -135,42 +258,121 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${contact.role} • No conversation yet',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: link.statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            link.statusLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: link.statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SupplierChatPage(
-                        customerName: contact.name,
-                        subtitle: contact.role,
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Say hi'),
-              ),
+              if (link.isPending) ...[
+                IconButton(
+                  onPressed: () => _rejectLink(context, link),
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  tooltip: 'Reject',
+                ),
+                IconButton(
+                  onPressed: () => _approveLink(context, link),
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  tooltip: 'Approve',
+                ),
+              ] else
+                const Icon(Icons.people_outline, color: Color(0xFF21545F)),
             ],
           ),
         );
       },
     );
   }
+
+  void _approveLink(BuildContext context, SupplierLink link) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not authenticated')),
+      );
+      return;
+    }
+
+    try {
+      final api = SupplierApiService();
+      await api.approveLinkRequest(token: token, linkId: link.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Approved ${link.consumerName ?? "consumer"}')),
+        );
+        // Trigger refresh
+        final state = context.findAncestorStateOfType<_SupplierChatListPageState>();
+        state?._refresh();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to approve: $e')),
+        );
+      }
+    }
+  }
+
+  void _rejectLink(BuildContext context, SupplierLink link) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not authenticated')),
+      );
+      return;
+    }
+
+    try {
+      final api = SupplierApiService();
+      await api.rejectLinkRequest(token: token, linkId: link.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Rejected ${link.consumerName ?? "consumer"}')),
+        );
+        // Trigger refresh
+        final state = context.findAncestorStateOfType<_SupplierChatListPageState>();
+        state?._refresh();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to reject: $e')),
+        );
+      }
+    }
+  }
 }
 
 class _ChatTabs extends StatelessWidget {
-  const _ChatTabs({required this.selectedIndex, required this.onChanged});
+  const _ChatTabs({required this.currentTab, required this.onChanged});
 
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
+  final _ChatTab currentTab;
+  final ValueChanged<_ChatTab> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -184,15 +386,15 @@ class _ChatTabs extends StatelessWidget {
       child: Row(
         children: [
           _TabButton(
-            label: 'Active',
-            index: 0,
-            selectedIndex: selectedIndex,
+            label: 'Conversations',
+            tab: _ChatTab.conversations,
+            current: currentTab,
             onTap: onChanged,
           ),
           _TabButton(
-            label: 'All Consumers',
-            index: 1,
-            selectedIndex: selectedIndex,
+            label: 'Linked consumers',
+            tab: _ChatTab.links,
+            current: currentTab,
             onTap: onChanged,
           ),
         ],
@@ -204,23 +406,23 @@ class _ChatTabs extends StatelessWidget {
 class _TabButton extends StatelessWidget {
   const _TabButton({
     required this.label,
-    required this.index,
-    required this.selectedIndex,
+    required this.tab,
+    required this.current,
     required this.onTap,
   });
 
   final String label;
-  final int index;
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
+  final _ChatTab tab;
+  final _ChatTab current;
+  final ValueChanged<_ChatTab> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = index == selectedIndex;
+    final isSelected = tab == current;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => onTap(index),
+        onTap: () => onTap(tab),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -253,99 +455,64 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _ChatTile extends StatelessWidget {
-  const _ChatTile({required this.summary, required this.onTap});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
 
-  final _ChatSummary summary;
-  final VoidCallback onTap;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: const Color(0xFFA7E1D5),
-              child: Text(
-                summary.name.substring(0, 1),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF21545F),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    summary.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E3E46),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    summary.role,
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    summary.lastMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              summary.time,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
+    return Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.black54),
       ),
     );
   }
 }
 
-class _ChatSummary {
-  _ChatSummary({
-    required this.name,
-    required this.lastMessage,
-    required this.time,
-    required this.role,
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.redAccent),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatLists {
+  const _ChatLists({
+    required this.conversations,
+    required this.links,
   });
 
-  final String name;
-  final String lastMessage;
-  final String time;
-  final String role;
+  final List<SupplierConversation> conversations;
+  final List<SupplierLink> links;
 }
 
-class _Contact {
-  _Contact({required this.name, required this.role});
+enum _ChatTab { conversations, links }
 
-  final String name;
-  final String role;
-}
+String _formatDateTime(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}.'
+    '${value.month.toString().padLeft(2, '0')} '
+    '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';

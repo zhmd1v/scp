@@ -5,6 +5,7 @@ from rest_framework import serializers
 from .models import Order, OrderItem, OrderStatusHistory
 from catalog.models import Product
 from catalog.serializers import ProductSerializer
+from accounts.serializers import SupplierProfileSerializer
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -42,6 +43,7 @@ class OrderSerializer(serializers.ModelSerializer):
     Основной сериализатор заказа + вложенные items.
     """
     items = OrderItemSerializer(many=True)
+    supplier = SupplierProfileSerializer(read_only=True)
 
     class Meta:
         model = Order

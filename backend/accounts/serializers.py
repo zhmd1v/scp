@@ -75,6 +75,12 @@ class ConsumerSupplierLinkSerializer(serializers.ModelSerializer):
     Линк между потребителем и поставщиком.
     Используем для списка и создания запросов.
     """
+    supplier = SupplierProfileSerializer(read_only=True)
+    supplier_id = serializers.PrimaryKeyRelatedField(
+        queryset=SupplierProfile.objects.all(),
+        source='supplier',
+        write_only=True
+    )
 
     class Meta:
         model = ConsumerSupplierLink
@@ -82,6 +88,7 @@ class ConsumerSupplierLinkSerializer(serializers.ModelSerializer):
             'id',
             'consumer',
             'supplier',
+            'supplier_id',
             'status',
             'requested_at',
         ]

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../consumer/presentation/pages/consumer_dashboard.dart';
 import '../../../../providers/auth_provider.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -18,8 +19,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _registrationController = TextEditingController();
+  String _businessType = 'restaurant';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -29,18 +35,62 @@ class _RegisterPageState extends State<RegisterPage> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _cityController.dispose();
+    _addressController.dispose();
+    _registrationController.dispose();
     super.dispose();
   }
 
-  void _submit(AuthProvider auth) {
-    if (!_formKey.currentState!.validate()) return;
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Submitting consumer registration...'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  Future<void> _submit(AuthProvider auth) async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+
+    FocusScope.of(context).unfocus();
+    setState(() => _isSubmitting = true);
+
+    try {
+      await auth.registerConsumer(
+        businessName: _companyController.text.trim(),
+        contactName: _contactController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        city: _cityController.text.trim(),
+        address: _addressController.text.trim(),
+        businessType: _businessType,
+        password: _passwordController.text,
+        confirmPassword: _confirmPasswordController.text,
+        registrationNumber: _registrationController.text.trim().isEmpty
+            ? null
+            : _registrationController.text.trim(),
+      );
+
+      if (!mounted) return;
+      _showSnackBar('Registration successful! Taking you to your dashboard...');
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ConsumerDashboard()),
+        (_) => false,
+      );
+    } on AuthException catch (e) {
+      _showSnackBar(e.message);
+    } catch (e) {
+      _showSnackBar('Registration failed: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -155,6 +205,74 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
+                          controller: _cityController,
+                          decoration: const InputDecoration(
+                            labelText: 'City',
+                            prefixIcon: Icon(Icons.location_city_outlined),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Enter your city';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _addressController,
+                          decoration: const InputDecoration(
+                            labelText: 'Business address',
+                            prefixIcon: Icon(Icons.place_outlined),
+                          ),
+                          minLines: 1,
+                          maxLines: 2,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Enter your address';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _businessType,
+                          decoration: const InputDecoration(
+                            labelText: 'Business type',
+                            prefixIcon: Icon(Icons.apartment_outlined),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'restaurant',
+                              child: Text('Restaurant'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'hotel',
+                              child: Text('Hotel'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'cafe',
+                              child: Text('Cafe'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'other',
+                              child: Text('Other'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _businessType = value);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _registrationController,
+                          decoration: const InputDecoration(
+                            labelText: 'Registration number (optional)',
+                            prefixIcon: Icon(Icons.confirmation_number_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
@@ -249,20 +367,31 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 28),
                         ElevatedButton(
-                          onPressed: () => _submit(auth),
+                          onPressed: _isSubmitting ? null : () => _submit(auth),
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(40),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text(
-                            'Submit registration',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Submit registration',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 12),
                         TextButton(

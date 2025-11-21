@@ -1,13 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'consumer_catalog_page.dart';
+import '../../../../providers/auth_provider.dart';
+import '../../data/consumer_api_service.dart';
+import 'consumer_catalog_page_v2.dart';
 import 'consumer_chat_list_page.dart';
 import 'consumer_home_shell.dart';
-import 'consumer_orders_page.dart';
-import 'consumer_supplier_search_page.dart';
+import 'consumer_orders_page_v2.dart';
+import 'consumer_supplier_search_page_v2.dart';
 
-class ConsumerDashboard extends StatelessWidget {
+class ConsumerDashboard extends StatefulWidget {
   const ConsumerDashboard({super.key});
+
+  @override
+  State<ConsumerDashboard> createState() => _ConsumerDashboardState();
+}
+
+class _ConsumerDashboardState extends State<ConsumerDashboard> {
+  final ConsumerApiService _api = ConsumerApiService();
+  int _approvedSuppliers = 0;
+  int _pendingApprovals = 0;
+  int _openOrders = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) return;
+
+    try {
+      final links = await _api.fetchLinks(token: token);
+      final orders = await _api.fetchOrders(token: token);
+
+      if (mounted) {
+        setState(() {
+          _approvedSuppliers = links.where((l) => l.isAccepted).length;
+          _pendingApprovals = links.where((l) => l.isPending).length;
+          _openOrders = orders.where((o) => o.isPending || o.isConfirmed || o.isInDelivery).length;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,45 +79,51 @@ class ConsumerDashboard extends StatelessWidget {
             const SizedBox(height: 20),
             const _SectionTitle(label: 'Link status'),
             const SizedBox(height: 12),
-            Row(
-              children: const [
-                Expanded(
-                  child: _MetricCard(
-                    label: 'Approved suppliers',
-                    value: '0',
-                    bgColor: Color(0xFFDDF3F1),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MetricCard(
+                              label: 'Approved suppliers',
+                              value: '$_approvedSuppliers',
+                              bgColor: const Color(0xFFDDF3F1),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MetricCard(
+                              label: 'Pending approvals',
+                              value: '$_pendingApprovals',
+                              bgColor: const Color(0xFFFFEFE2),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MetricCard(
+                              label: 'Open orders',
+                              value: '$_openOrders',
+                              bgColor: const Color(0xFFE3EDF4),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MetricCard(
+                              label: 'Active complaints',
+                              value: '0',
+                              bgColor: const Color(0xFFFFF4DB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    label: 'Pending approvals',
-                    value: '0',
-                    bgColor: Color(0xFFFFEFE2),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: const [
-                Expanded(
-                  child: _MetricCard(
-                    label: 'Open orders',
-                    value: '0',
-                    bgColor: Color(0xFFE3EDF4),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    label: 'Active complaints',
-                    value: '0',
-                    bgColor: Color(0xFFFFF4DB),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 28),
             const _SectionTitle(label: 'Upcoming deliveries'),
             const SizedBox(height: 12),
@@ -141,7 +191,13 @@ class ConsumerDashboard extends StatelessWidget {
                   child: _QuickAction(
                     icon: Icons.receipt_long_outlined,
                     label: 'Orders',
-                    onTap: () => _openOrders(context),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ConsumerOrdersPageV2(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -149,7 +205,13 @@ class ConsumerDashboard extends StatelessWidget {
                   child: _QuickAction(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Chats',
-                    onTap: () => _openChats(context),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ConsumerChatListPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -159,38 +221,22 @@ class ConsumerDashboard extends StatelessWidget {
       ),
     );
   }
-}
 
-void _openSupplierSearch(BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const ConsumerSupplierSearchPage(),
-    ),
-  );
-}
+  void _openSupplierSearch(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ConsumerSupplierSearchPageV2(),
+      ),
+    );
+  }
 
-void _openCatalog(BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const ConsumerCatalogPage(),
-    ),
-  );
-}
-
-void _openOrders(BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const ConsumerOrdersPage(),
-    ),
-  );
-}
-
-void _openChats(BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const ConsumerChatListPage(),
-    ),
-  );
+  void _openCatalog(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ConsumerCatalogPageV2(),
+      ),
+    );
+  }
 }
 
 class _SectionTitle extends StatelessWidget {

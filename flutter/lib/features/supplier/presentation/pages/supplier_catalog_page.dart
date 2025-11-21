@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../providers/auth_provider.dart';
+import '../../data/supplier_api_service.dart';
+import '../../data/supplier_models.dart';
 import 'supplier_home_shell.dart';
 
 class SupplierCatalogPage extends StatefulWidget {
@@ -11,32 +15,11 @@ class SupplierCatalogPage extends StatefulWidget {
 
 class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
   final TextEditingController _searchController = TextEditingController();
+  final SupplierApiService _api = SupplierApiService();
 
-  final List<Map<String, dynamic>> _products = [
-    {
-      'name': 'Fresh Salmon',
-      'category': 'Fish',
-      'price': 4500.0,
-      'stock': 12,
-      'description': 'High-quality Norwegian salmon.',
-    },
-    {
-      'name': 'Premium Beef Steak',
-      'category': 'Beef',
-      'price': 6000.0,
-      'stock': 3,
-      'description': 'Grass-fed beef steak.',
-    },
-    {
-      'name': 'Gouda Cheese',
-      'category': 'Cheese',
-      'price': 2500.0,
-      'stock': 0,
-      'description': 'Imported Dutch Gouda cheese.',
-    },
-  ];
-
-  final List<String> _categories = ['All', 'Fish', 'Beef', 'Cheese'];
+  Future<List<SupplierProduct>>? _productsFuture;
+  List<SupplierProduct> _products = [];
+  int? _lastSupplierId;
   String _selectedCategory = 'All';
   String _sortOption = 'None';
 
@@ -46,123 +29,229 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
     super.dispose();
   }
 
+  Future<List<SupplierProduct>> _loadProducts(int supplierId) async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      throw const AuthException('You are not authenticated.');
+    }
+    final products = await _api.fetchSupplierProducts(
+      token: token,
+      supplierId: supplierId,
+    );
+    _products = products;
+    return products;
+  }
+
+  List<SupplierProduct> _composeProductList() {
+    final query = _searchController.text.toLowerCase();
+    List<SupplierProduct> items = _products.where((product) {
+      final matchesName = product.name.toLowerCase().contains(query);
+      final matchesCategory =
+          _selectedCategory == 'All' || product.categoryLabel == _selectedCategory;
+      return matchesName && matchesCategory;
+    }).toList();
+
+    switch (_sortOption) {
+      case 'Price ↑':
+        items.sort((a, b) => (a.unitPrice ?? 0).compareTo(b.unitPrice ?? 0));
+        break;
+      case 'Price ↓':
+        items.sort((a, b) => (b.unitPrice ?? 0).compareTo(a.unitPrice ?? 0));
+        break;
+      case 'A–Z':
+        items.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      default:
+        break;
+    }
+    return items;
+  }
+
+  List<String> get _categoryFilters {
+    final categories = _products.map((p) => p.categoryLabel).toSet().toList()
+      ..sort();
+    return ['All', ...categories];
+  }
+
+  Future<void> _refresh(int supplierId) async {
+    setState(() {
+      _productsFuture = _loadProducts(supplierId);
+    });
+    await _productsFuture;
+  }
+
+  Future<void> _promptSupplierId() async {
+    final controller = TextEditingController();
+    final id = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Set supplier ID'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(hintText: 'Enter supplier ID'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final parsed = int.tryParse(controller.text.trim());
+                Navigator.pop(context, parsed);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    if (id != null) {
+      context.read<AuthProvider>().setSupplierId(id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredProducts = _composeProductList();
+    final supplierId = context.watch<AuthProvider>().supplierId;
+    if (_lastSupplierId != supplierId) {
+      _lastSupplierId = supplierId;
+      if (supplierId != null) {
+        _productsFuture = _loadProducts(supplierId);
+      } else {
+        _productsFuture = null;
+        _products = [];
+      }
+    }
 
     return SupplierHomeShell(
       title: 'Catalog',
       section: SupplierSection.catalog,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSearchAndFilters(),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-                  return GestureDetector(
-                    onTap: () => _openProductDetails(product),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
+        child: supplierId == null
+            ? _MissingSupplierState(onSetSupplierId: _promptSupplierId)
+            : FutureBuilder<List<SupplierProduct>>(
+                future: _productsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return _ErrorState(
+                      message: snapshot.error.toString(),
+                      onRetry: () => _refresh(supplierId),
+                    );
+                  }
+                  if (_products.isEmpty) {
+                    return RefreshIndicator(
+                      onRefresh: () => _refresh(supplierId),
+                      child: ListView(
+                        children: const [
+                          SizedBox(height: 120),
+                          _EmptyState(message: 'No products found in your catalog yet.'),
                         ],
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFA7E1D5),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(
-                              Icons.inventory_2_rounded,
-                              color: Color(0xFF21545F),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product['name'],
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1E3E46),
+                    );
+                  }
+                  final filteredProducts = _composeProductList();
+                  return Column(
+                    children: [
+                      _buildSearchAndFilters(),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: () => _refresh(supplierId),
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+                              return GestureDetector(
+                                onTap: () => _openProductDetails(product),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFA7E1D5),
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        child: const Icon(
+                                          Icons.inventory_2_rounded,
+                                          color: Color(0xFF21545F),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product.name,
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF1E3E46),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            _StockBadge(
+                                              stock: product.stockQuantity ?? 0,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${product.unitPrice?.toStringAsFixed(0) ?? '—'} ₸ / ${product.unit ?? 'unit'}',
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: Color(0xFF21545F),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                _StockBadge(stock: product['stock']),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${product['price']} ₸ / кг',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                          const Icon(
-                            Icons.chevron_right,
-                            color: Color(0xFF21545F),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   );
                 },
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  List<Map<String, dynamic>> _composeProductList() {
-    final query = _searchController.text.toLowerCase();
-    List<Map<String, dynamic>> items = _products.where((product) {
-      final matchesName = product['name'].toLowerCase().contains(query);
-      final matchesCategory =
-          _selectedCategory == 'All' ||
-          product['category'] == _selectedCategory;
-      return matchesName && matchesCategory;
-    }).toList();
-
-    switch (_sortOption) {
-      case 'Price ↑':
-        items.sort((a, b) => (a['price'] as num).compareTo(b['price'] as num));
-        break;
-      case 'Price ↓':
-        items.sort((a, b) => (b['price'] as num).compareTo(a['price'] as num));
-        break;
-      case 'A–Z':
-        items.sort((a, b) => a['name'].compareTo(b['name']));
-        break;
-    }
-    return items;
-  }
-
   Widget _buildSearchAndFilters() {
+    final categories = _categoryFilters;
+    if (!categories.contains(_selectedCategory)) {
+      _selectedCategory = 'All';
+    }
+
     return Column(
       children: [
         TextField(
@@ -185,7 +274,7 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                items: _categories
+                items: categories
                     .map(
                       (category) => DropdownMenuItem(
                         value: category,
@@ -218,9 +307,7 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
               child: DropdownButton<String>(
                 value: _sortOption,
                 underline: const SizedBox(),
-                items: const ['None', 'Price ↑', 'Price ↓', 'A–Z'].map((
-                  option,
-                ) {
+                items: const ['None', 'Price ↑', 'Price ↓', 'A–Z'].map((option) {
                   return DropdownMenuItem(value: option, child: Text(option));
                 }).toList(),
                 onChanged: (value) {
@@ -235,7 +322,7 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
     );
   }
 
-  void _openProductDetails(Map<String, dynamic> product) {
+  void _openProductDetails(SupplierProduct product) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -248,7 +335,7 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                product['name'],
+                product.name,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -256,15 +343,15 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                product['category'],
+                product.categoryLabel,
                 style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 8),
-              Text(product['description'] ?? ''),
+              Text(product.description ?? 'No description provided'),
               const SizedBox(height: 12),
-              Text('Price: ${product['price']} ₸ / кг'),
+              Text('Price: ${product.unitPrice?.toStringAsFixed(0) ?? '—'} ₸ / ${product.unit ?? 'unit'}'),
               const SizedBox(height: 4),
-              Text('Stock: ${product['stock']} кг'),
+              Text('Stock: ${(product.stockQuantity ?? 0).toStringAsFixed(2)} ${product.unit ?? ''}'),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
@@ -286,7 +373,7 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
 class _StockBadge extends StatelessWidget {
   const _StockBadge({required this.stock});
 
-  final num stock;
+  final double stock;
 
   @override
   Widget build(BuildContext context) {
@@ -317,6 +404,78 @@ class _StockBadge extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _MissingSupplierState extends StatelessWidget {
+  const _MissingSupplierState({required this.onSetSupplierId});
+
+  final VoidCallback onSetSupplierId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Set your supplier ID to load catalog products.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onSetSupplierId,
+            child: const Text('Set supplier ID'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.black54),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.redAccent),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }

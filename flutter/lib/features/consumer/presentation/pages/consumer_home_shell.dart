@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../providers/auth_provider.dart';
-import 'consumer_catalog_page.dart';
+import 'consumer_catalog_page_v2.dart';
 import 'consumer_chat_list_page.dart';
 import 'consumer_dashboard.dart';
-import 'consumer_orders_page.dart';
-import 'consumer_supplier_search_page.dart';
+import 'consumer_orders_page_v2.dart';
+import 'consumer_supplier_search_page_v2.dart';
 
 enum ConsumerSection {
   dashboard,
@@ -178,13 +178,13 @@ class ConsumerHomeShell extends StatelessWidget {
         destination = const ConsumerDashboard();
         break;
       case ConsumerSection.suppliers:
-        destination = const ConsumerSupplierSearchPage();
+        destination = const ConsumerSupplierSearchPageV2();
         break;
       case ConsumerSection.catalog:
-        destination = const ConsumerCatalogPage();
+        destination = const ConsumerCatalogPageV2();
         break;
       case ConsumerSection.orders:
-        destination = const ConsumerOrdersPage();
+        destination = const ConsumerOrdersPageV2();
         break;
       case ConsumerSection.chats:
         destination = const ConsumerChatListPage();

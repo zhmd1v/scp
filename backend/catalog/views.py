@@ -33,7 +33,7 @@ class SupplierProductListView(generics.ListAPIView):
         supplier_id = self.kwargs.get('supplier_id')
         user = self.request.user
 
-        base_qs = Product.objects.filter(supplier_id=supplier_id)
+        base_qs = Product.objects.filter(supplier_id=supplier_id).select_related('category')
 
         # 1) суперюзер видит всё
         if user.is_superuser:

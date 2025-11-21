@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../providers/auth_provider.dart';
+import '../../../../services/api_service.dart';
+import '../../data/supplier_api_service.dart';
+import '../../data/supplier_models.dart';
 
 class SupplierChatPage extends StatefulWidget {
   const SupplierChatPage({
     super.key,
+    required this.conversationId,
     required this.customerName,
     this.subtitle = 'Linked consumer',
   });
 
+  final int conversationId;
   final String customerName;
   final String subtitle;
 
@@ -16,11 +24,90 @@ class SupplierChatPage extends StatefulWidget {
 
 class _SupplierChatPageState extends State<SupplierChatPage> {
   final TextEditingController _messageController = TextEditingController();
-  final List<_ChatMessage> _messages = [
-    _ChatMessage(text: 'Good morning! We need to reorder salmon.', isMe: false),
-    _ChatMessage(text: 'Absolutely. How many kilos do you need?', isMe: true),
-    _ChatMessage(text: 'Can we get 10kg delivered tomorrow?', isMe: false),
-  ];
+  final SupplierApiService _api = SupplierApiService();
+
+  List<SupplierMessage> _messages = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
+
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    final userId = auth.currentUser?['id'] as int?;
+    if (token == null || userId == null) {
+      setState(() {
+        _error = 'You are not authenticated.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final messages = await _api.fetchMessages(
+        token: token,
+        conversationId: widget.conversationId,
+        currentUserId: userId,
+      );
+      setState(() {
+        _messages = messages;
+        _isLoading = false;
+      });
+      await _api.markConversationRead(
+        token: token,
+        conversationId: widget.conversationId,
+      );
+    } on ApiServiceException catch (e) {
+      setState(() {
+        _error = e.message;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleSend() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      setState(() => _error = 'You are not authenticated.');
+      return;
+    }
+
+    _messageController.clear();
+
+    try {
+      await _api.sendMessage(
+        token: token,
+        conversationId: widget.conversationId,
+        text: text,
+      );
+      await _loadMessages(silent: true);
+    } on ApiServiceException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
 
   @override
   void dispose() {
@@ -28,20 +115,8 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
     super.dispose();
   }
 
-  void _handleSend() {
-    final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() {
-      _messages.add(_ChatMessage(text: text, isMe: true));
-    });
-    _messageController.clear();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: const Color(0xFFE9EEF0),
       appBar: AppBar(
@@ -59,64 +134,20 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.call_outlined), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadMessages),
         ],
       ),
       body: Column(
         children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (_, index) {
-                final message = _messages[index];
-                final isMe = message.isMe;
-                return Align(
-                  alignment: isMe
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFFA7E1D5) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      message.text,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF1E3E46),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: _handleEscalation,
-              icon: const Icon(Icons.priority_high_rounded),
-              label: const Text('Escalate to manager/owner'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF21545F),
-                side: const BorderSide(color: Color(0xFF21545F)),
+          Expanded(child: _buildMessageList()),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.redAccent),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
           const Divider(height: 1),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -155,21 +186,58 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
     );
   }
 
-  void _handleEscalation() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const SupplierChatPage(
-          customerName: 'Manager Aigerim',
-          subtitle: 'Escalation chat',
-        ),
-      ),
+  Widget _buildMessageList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_messages.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: const [
+          SizedBox(height: 120),
+          Center(
+            child: Text(
+              'No messages yet. Say hi to start the conversation!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final theme = Theme.of(context);
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _messages.length,
+      itemBuilder: (_, index) {
+        final message = _messages[index];
+        final isMe = message.isMine;
+        return Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFFA7E1D5) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Text(
+              message.text,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF1E3E46),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
-}
-
-class _ChatMessage {
-  const _ChatMessage({required this.text, required this.isMe});
-
-  final String text;
-  final bool isMe;
 }

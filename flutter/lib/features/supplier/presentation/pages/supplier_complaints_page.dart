@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'supplier_chat_page.dart';
+import '../../../../providers/auth_provider.dart';
+import '../../../../services/api_service.dart';
+import '../../data/supplier_api_service.dart';
+import '../../data/supplier_models.dart';
 import 'supplier_home_shell.dart';
 
 class SupplierComplaintsPage extends StatefulWidget {
@@ -11,56 +15,91 @@ class SupplierComplaintsPage extends StatefulWidget {
 }
 
 class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
-  final List<_Complaint> _complaints = [
-    _Complaint(
-      id: 'CMP-001',
-      orderId: 'ORD-12345',
-      customer: 'Restaurant A',
-      type: 'Delivery delay',
-      status: ComplaintStatus.open,
-      priority: ComplaintPriority.high,
-      date: DateTime(2025, 2, 12),
-      description: 'Order arrived two hours late, affected lunch service.',
-    ),
-    _Complaint(
-      id: 'CMP-002',
-      orderId: 'ORD-12340',
-      customer: 'Hotel SunRise',
-      type: 'Low quality',
-      status: ComplaintStatus.inProgress,
-      priority: ComplaintPriority.medium,
-      date: DateTime(2025, 2, 11),
-      description: 'Vegetables were not fresh, several items bruised.',
-    ),
-    _Complaint(
-      id: 'CMP-003',
-      orderId: 'ORD-12338',
-      customer: 'Cafe Aroma',
-      type: 'Wrong quantity',
-      status: ComplaintStatus.resolved,
-      priority: ComplaintPriority.low,
-      date: DateTime(2025, 2, 9),
-      description: 'Received 10 kg instead of ordered 15 kg of flour.',
-    ),
-  ];
+  final SupplierApiService _api = SupplierApiService();
+  late Future<List<SupplierComplaint>> _complaintsFuture;
+  List<SupplierComplaint> _complaints = [];
+  _ComplaintFilter _filter = _ComplaintFilter.all;
 
-  final List<ComplaintStatus?> _tabs = [
-    null,
-    ComplaintStatus.open,
-    ComplaintStatus.inProgress,
-    ComplaintStatus.resolved,
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _complaintsFuture = _loadComplaints();
+  }
 
-  int _selectedTab = 0;
+  Future<List<SupplierComplaint>> _loadComplaints() async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      throw const AuthException('You are not authenticated.');
+    }
+    final complaints = await _api.fetchComplaints(token: token);
+    _complaints = complaints;
+    return complaints;
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _complaintsFuture = _loadComplaints();
+    });
+    await _complaintsFuture;
+  }
+
+  void _showSnack(String message, {Color? backgroundColor}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: backgroundColor,
+        ),
+      );
+  }
+
+  Future<bool> _updateComplaintStatus(int complaintId, String newStatus) async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      _showSnack('You are not authenticated.');
+      return false;
+    }
+
+    try {
+      await _api.updateComplaintStatus(
+        token: token,
+        complaintId: complaintId,
+        newStatus: newStatus,
+      );
+      await _refresh();
+      _showSnack(
+        'Complaint #$complaintId updated to ${_statusLabel(newStatus)}.',
+        backgroundColor: Colors.green,
+      );
+      return true;
+    } on ApiServiceException catch (e) {
+      _showSnack(e.message);
+      return false;
+    } catch (e) {
+      _showSnack(e.toString());
+      return false;
+    }
+  }
+
+  List<SupplierComplaint> get _filteredComplaints {
+    switch (_filter) {
+      case _ComplaintFilter.open:
+        return _complaints.where((c) => c.isOpen).toList();
+      case _ComplaintFilter.inProgress:
+        return _complaints.where((c) => c.isInProgress).toList();
+      case _ComplaintFilter.resolved:
+        return _complaints.where((c) => c.isResolved).toList();
+      case _ComplaintFilter.all:
+        return _complaints;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _tabs[_selectedTab] == null
-        ? _complaints
-        : _complaints
-              .where((complaint) => complaint.status == _tabs[_selectedTab])
-              .toList();
-
     return SupplierHomeShell(
       title: 'Complaints',
       section: SupplierSection.complaints,
@@ -68,20 +107,44 @@ class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
         children: [
           const SizedBox(height: 16),
           _ComplaintTabs(
-            currentIndex: _selectedTab,
-            onChanged: (index) => setState(() => _selectedTab = index),
+            currentFilter: _filter,
+            onChanged: (value) => setState(() => _filter = value),
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, index) {
-                final complaint = filtered[index];
-                return _ComplaintCard(
-                  complaint: complaint,
-                  onView: () => _openDetails(complaint),
+            child: FutureBuilder<List<SupplierComplaint>>(
+              future: _complaintsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return _ErrorState(
+                    message: snapshot.error.toString(),
+                    onRetry: _refresh,
+                  );
+                }
+                if (_complaints.isEmpty) {
+                  return const _EmptyState(
+                    message: 'No complaints have been logged yet.',
+                  );
+                }
+                final complaints = _filteredComplaints;
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: complaints.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, index) {
+                      final complaint = complaints[index];
+                      return _ComplaintCard(
+                        complaint: complaint,
+                        onView: () => _openDetails(complaint),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -91,148 +154,188 @@ class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
     );
   }
 
-  void _openDetails(_Complaint complaint) {
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'open':
+        return 'Open';
+      case 'in_progress':
+        return 'In progress';
+      case 'resolved':
+        return 'Resolved';
+      case 'closed':
+        return 'Closed';
+      default:
+        return status;
+    }
+  }
+
+  void _openDetails(SupplierComplaint complaint) {
+    const statuses = ['open', 'in_progress', 'resolved', 'closed'];
+    String selectedStatus = complaint.status;
+    bool isSaving = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          complaint.customer,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E3E46),
-                          ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              complaint.title,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E3E46),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Complaint #${complaint.id}',
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Complaint ID: ${complaint.id}',
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                      ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _DetailRow(
+                    icon: Icons.receipt_long,
+                    label: 'Order',
+                    value: complaint.orderId != null
+                        ? '#${complaint.orderId}'
+                        : 'Not linked',
+                  ),
+                  _DetailRow(
+                    icon: Icons.flag_outlined,
+                    label: 'Status',
+                    value: _statusLabel(selectedStatus),
+                  ),
+                  if (complaint.severity != null)
+                    _DetailRow(
+                      icon: Icons.warning_amber_rounded,
+                      label: 'Severity',
+                      value: complaint.severity!,
+                    ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Description',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E3E46),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      complaint.description,
+                      style: const TextStyle(fontSize: 14, height: 1.5),
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _DetailRow(
-                icon: Icons.receipt_long,
-                label: 'Order',
-                value: complaint.orderId,
-              ),
-              _DetailRow(
-                icon: Icons.category_outlined,
-                label: 'Type',
-                value: complaint.type,
-              ),
-              _DetailRow(
-                icon: Icons.flag_outlined,
-                label: 'Priority',
-                value: complaint.priority.label,
-              ),
-              _DetailRow(
-                icon: Icons.calendar_today_outlined,
-                label: 'Date',
-                value:
-                    '${complaint.date.day}.${complaint.date.month}.${complaint.date.year}',
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Description',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E3E46),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  complaint.description,
-                  style: const TextStyle(fontSize: 14, height: 1.5),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => SupplierChatPage(
-                              customerName: complaint.customer,
-                              subtitle: 'Complaint chat',
-                            ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Update status',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E3E46),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    items: statuses
+                        .map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(_statusLabel(status)),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('Message consumer'),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setModalState(() => selectedStatus = value);
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isSaving || selectedStatus == complaint.status
+                          ? null
+                          : () async {
+                              setModalState(() => isSaving = true);
+                              final success = await _updateComplaintStatus(
+                                complaint.id,
+                                selectedStatus,
+                              );
+                              if (!success) {
+                                setModalState(() => isSaving = false);
+                                return;
+                              }
+                              if (Navigator.of(modalContext).canPop()) {
+                                Navigator.of(modalContext).pop();
+                              }
+                            },
+                      icon: isSaving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined),
+                      label: Text(
+                        isSaving ? 'Saving...' : 'Save changes',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF21545F),
                         foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 46),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const SupplierChatPage(
-                              customerName: 'Manager Aigerim',
-                              subtitle: 'Escalation chat',
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.priority_high),
-                      label: const Text('Escalate to manager'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.orange,
-                        side: const BorderSide(color: Colors.orange),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -240,14 +343,22 @@ class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
 }
 
 class _ComplaintTabs extends StatelessWidget {
-  const _ComplaintTabs({required this.currentIndex, required this.onChanged});
+  const _ComplaintTabs({
+    required this.currentFilter,
+    required this.onChanged,
+  });
 
-  final int currentIndex;
-  final ValueChanged<int> onChanged;
+  final _ComplaintFilter currentFilter;
+  final ValueChanged<_ComplaintFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['All', 'Open', 'In progress', 'Resolved'];
+    const tabs = [
+      (_ComplaintFilter.all, 'All'),
+      (_ComplaintFilter.open, 'Open'),
+      (_ComplaintFilter.inProgress, 'In progress'),
+      (_ComplaintFilter.resolved, 'Resolved'),
+    ];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -257,11 +368,11 @@ class _ComplaintTabs extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
-        children: List.generate(tabs.length, (index) {
-          final isSelected = index == currentIndex;
+        children: tabs.map((entry) {
+          final isSelected = currentFilter == entry.$1;
           return Expanded(
             child: GestureDetector(
-              onTap: () => onChanged(index),
+              onTap: () => onChanged(entry.$1),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -280,7 +391,7 @@ class _ComplaintTabs extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  tabs[index],
+                  entry.$2,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: isSelected
@@ -291,7 +402,7 @@ class _ComplaintTabs extends StatelessWidget {
               ),
             ),
           );
-        }),
+        }).toList(),
       ),
     );
   }
@@ -300,14 +411,11 @@ class _ComplaintTabs extends StatelessWidget {
 class _ComplaintCard extends StatelessWidget {
   const _ComplaintCard({required this.complaint, required this.onView});
 
-  final _Complaint complaint;
+  final SupplierComplaint complaint;
   final VoidCallback onView;
 
   @override
   Widget build(BuildContext context) {
-    final descriptor = _StatusDescriptor.fromStatus(complaint.status);
-    final priorityColor = complaint.priority.color;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -330,7 +438,7 @@ class _ComplaintCard extends StatelessWidget {
                 radius: 24,
                 backgroundColor: const Color(0xFFA7E1D5),
                 child: Text(
-                  complaint.customer.substring(0, 1),
+                  complaint.title.substring(0, 1),
                   style: const TextStyle(
                     color: Color(0xFF21545F),
                     fontWeight: FontWeight.bold,
@@ -343,7 +451,7 @@ class _ComplaintCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      complaint.customer,
+                      complaint.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -352,7 +460,7 @@ class _ComplaintCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      complaint.type,
+                      'Order #${complaint.orderId ?? '—'}',
                       style: const TextStyle(
                         fontSize: 13,
                         color: Colors.black54,
@@ -361,22 +469,7 @@ class _ComplaintCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _StatusChip(descriptor: descriptor),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _IconDetail(
-                icon: Icons.receipt_long_outlined,
-                label: complaint.orderId,
-              ),
-              const SizedBox(width: 16),
-              _IconDetail(
-                icon: Icons.flag_outlined,
-                label: complaint.priority.label,
-                color: priorityColor,
-              ),
+              _StatusChip(complaint: complaint),
             ],
           ),
           const SizedBox(height: 12),
@@ -402,24 +495,27 @@ class _ComplaintCard extends StatelessWidget {
   }
 }
 
-class _IconDetail extends StatelessWidget {
-  const _IconDetail({required this.icon, required this.label, this.color});
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.complaint});
 
-  final IconData icon;
-  final String label;
-  final Color? color;
+  final SupplierComplaint complaint;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color ?? Colors.black54),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(color: color ?? Colors.black54, fontSize: 12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: complaint.statusColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        complaint.statusLabel,
+        style: TextStyle(
+          color: complaint.statusColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
         ),
-      ],
+      ),
     );
   }
 }
@@ -463,98 +559,49 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.descriptor});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
 
-  final _StatusDescriptor descriptor;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: descriptor.color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return Center(
       child: Text(
-        descriptor.label,
-        style: TextStyle(
-          color: descriptor.color,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
+        message,
+        style: const TextStyle(color: Colors.black54),
+        textAlign: TextAlign.center,
       ),
     );
   }
 }
 
-class _Complaint {
-  const _Complaint({
-    required this.id,
-    required this.orderId,
-    required this.customer,
-    required this.type,
-    required this.status,
-    required this.priority,
-    required this.date,
-    required this.description,
-  });
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
 
-  final String id;
-  final String orderId;
-  final String customer;
-  final String type;
-  final ComplaintStatus status;
-  final ComplaintPriority priority;
-  final DateTime date;
-  final String description;
-}
+  final String message;
+  final VoidCallback onRetry;
 
-enum ComplaintStatus { open, inProgress, resolved }
-
-enum ComplaintPriority { high, medium, low }
-
-extension on ComplaintPriority {
-  String get label {
-    switch (this) {
-      case ComplaintPriority.high:
-        return 'High';
-      case ComplaintPriority.medium:
-        return 'Medium';
-      case ComplaintPriority.low:
-        return 'Low';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case ComplaintPriority.high:
-        return Colors.red;
-      case ComplaintPriority.medium:
-        return Colors.orange;
-      case ComplaintPriority.low:
-        return Colors.blue;
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.redAccent),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _StatusDescriptor {
-  const _StatusDescriptor({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  static _StatusDescriptor fromStatus(ComplaintStatus status) {
-    switch (status) {
-      case ComplaintStatus.open:
-        return const _StatusDescriptor(label: 'Open', color: Colors.red);
-      case ComplaintStatus.inProgress:
-        return const _StatusDescriptor(
-          label: 'In progress',
-          color: Colors.orange,
-        );
-      case ComplaintStatus.resolved:
-        return const _StatusDescriptor(label: 'Resolved', color: Colors.green);
-    }
-  }
-}
+enum _ComplaintFilter { all, open, inProgress, resolved }
