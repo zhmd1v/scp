@@ -138,7 +138,7 @@ class ConsumerSupplierLink(models.Model):
     """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('approved', 'Approved'),
+        ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
         ('blocked', 'Blocked'),
     ]

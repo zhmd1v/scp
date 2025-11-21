@@ -41,7 +41,12 @@ class _ConsumerCatalogPageV2State extends State<ConsumerCatalogPageV2> {
     }
     
     final links = await _api.fetchLinks(token: token);
+    print("[CATALOG DEBUG] Total links: ${links.length}");
+    for (var link in links) {
+      print("[CATALOG DEBUG] Link: ${link.supplier.companyName}, Status: ${link.status}, isAccepted: ${link.isAccepted}");
+    }
     _links = links.where((link) => link.isAccepted).toList();
+    print("[CATALOG DEBUG] Accepted links: ${_links.length}");
     return _links;
   }
 

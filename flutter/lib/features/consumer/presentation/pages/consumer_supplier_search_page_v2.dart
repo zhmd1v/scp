@@ -47,6 +47,8 @@ class _ConsumerSupplierSearchPageV2State
     final suppliers = await _api.fetchSuppliers(token: token);
     final links = await _api.fetchLinks(token: token);
 
+    print("[DEMO] Data fetched: ${suppliers} suppliers, ${links} links");
+
     _allSuppliers = suppliers;
     _links = links;
 
@@ -61,10 +63,13 @@ class _ConsumerSupplierSearchPageV2State
   }
 
   List<ConsumerSupplier> get _availableSuppliers {
+    print("[DEMO] _availableSuppliers1: $_links");
     // Suppliers that are verified and don't have any link (pending or accepted)
     final linkedSupplierIds = _links.map((l) => l.supplier.id).toSet();
     
+    print("[DEMO] _availableSuppliers2: $linkedSupplierIds");
     return _allSuppliers.where((supplier) {
+      print("[DEMO] Checking supplier: ${supplier.companyName} ${!supplier.isVerified}, ${linkedSupplierIds.contains(supplier.id)}");
       if (!supplier.isVerified) return false;
       if (linkedSupplierIds.contains(supplier.id)) return false;
       

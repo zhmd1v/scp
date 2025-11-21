@@ -61,9 +61,9 @@ class ConsumerSupplierLinkListCreateView(generics.ListCreateAPIView):
         user = self.request.user
 
         # если пользователь — consumer
-        if hasattr(user, 'consumerprofile'):
+        if hasattr(user, 'consumer_profile'):
             return ConsumerSupplierLink.objects.filter(
-                consumer=user.consumerprofile
+                consumer=user.consumer_profile
             ).select_related('consumer', 'supplier')
 
         # если пользователь — сотрудник поставщика (Owner/Manager/Sales)

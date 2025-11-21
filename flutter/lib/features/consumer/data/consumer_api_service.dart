@@ -38,6 +38,7 @@ class ConsumerApiService extends ApiService {
     }
 
     final payload = jsonDecode(response.body) as List<dynamic>;
+    print("[DEMO] Data fetched: ${response.body}");
     return payload
         .whereType<Map<String, dynamic>>()
         .map(ConsumerSupplierLink.fromJson)
