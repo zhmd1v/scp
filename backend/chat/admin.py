@@ -10,9 +10,9 @@ class MessageInline(admin.TabularInline):
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'supplier', 'consumer', 'order', 'conversation_type', 'created_at']
-    list_filter = ['conversation_type', 'supplier']
-    search_fields = ['supplier__company_name', 'consumer__business_name']
+    list_display = ['id', 'supplier', 'consumer', 'assigned_staff', 'order', 'conversation_type', 'created_at']
+    list_filter = ['conversation_type', 'supplier', 'assigned_staff']
+    search_fields = ['supplier__company_name', 'consumer__business_name', 'assigned_staff__user__username']
     inlines = [MessageInline]
 
 

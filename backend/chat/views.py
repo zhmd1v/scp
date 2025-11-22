@@ -130,7 +130,35 @@ class ConversationListCreateView(generics.ListCreateAPIView):
             if conversation_type == 'supplier_consumer':
                 if not consumer:
                     raise PermissionDenied("Для supplier_consumer диалога нужно указать consumer.")
-            serializer.save(created_by=user)
+                
+                # Assign to consumer's assigned sales rep if exists
+                assigned_staff = None
+                try:
+                    link = ConsumerSupplierLink.objects.get(
+                        consumer=consumer,
+                        supplier=supplier,
+                        status='accepted'
+                    )
+                    if link.assigned_sales_rep:
+                        assigned_staff = link.assigned_sales_rep
+                except ConsumerSupplierLink.DoesNotExist:
+                    pass
+                
+                # If no assigned rep, use load balancing
+                if not assigned_staff:
+                    from django.db.models import Count
+                    sales_reps = SupplierStaff.objects.filter(
+                        supplier=supplier,
+                        user__user_type='supplier_sales'
+                    ).annotate(
+                        active_chats=Count('assigned_conversations')
+                    ).order_by('active_chats')
+                    assigned_staff = sales_reps.first()
+                
+                serializer.save(created_by=user, assigned_staff=assigned_staff)
+            else:
+                # For internal conversations, no assignment needed
+                serializer.save(created_by=user)
             return
 
         raise PermissionDenied("Этот пользователь не может создавать диалоги.")
