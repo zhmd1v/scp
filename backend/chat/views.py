@@ -37,8 +37,15 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         staff_supplier_ids = SupplierStaff.objects.filter(
             user=user
         ).values_list('supplier_id', flat=True)
+        
         if staff_supplier_ids:
-            return base_qs.filter(supplier_id__in=staff_supplier_ids)
+            qs = base_qs.filter(supplier_id__in=staff_supplier_ids)
+            
+            # If user is sales rep, only show assigned conversations
+            if user.user_type == 'supplier_sales':
+                qs = qs.filter(assigned_staff__user=user)
+                
+            return qs
 
         # consumer
         try:
@@ -83,10 +90,36 @@ class ConversationListCreateView(generics.ListCreateAPIView):
             if not has_link:
                 raise PermissionDenied("Нет одобренной связи с этим поставщиком, нельзя открыть чат.")
 
+            # Routing logic: Assign to sales rep
+            # 1. Check if Consumer is assigned to a specific rep
+            assigned_staff = None
+            try:
+                link = ConsumerSupplierLink.objects.get(
+                    consumer=consumer_profile,
+                    supplier=supplier,
+                    status='accepted'
+                )
+                if link.assigned_sales_rep:
+                    assigned_staff = link.assigned_sales_rep
+            except ConsumerSupplierLink.DoesNotExist:
+                pass # Should be caught by has_link check above, but safe to ignore here
+
+            # 2. If no assigned rep, fallback to load balancing (least active chats)
+            if not assigned_staff:
+                from django.db.models import Count
+                sales_reps = SupplierStaff.objects.filter(
+                    supplier=supplier,
+                    user__user_type='supplier_sales'
+                ).annotate(
+                    active_chats=Count('assigned_conversations')
+                ).order_by('active_chats')
+                assigned_staff = sales_reps.first()
+
             serializer.save(
                 consumer=consumer_profile,
                 conversation_type='supplier_consumer',
                 created_by=user,
+                assigned_staff=assigned_staff
             )
             return
 

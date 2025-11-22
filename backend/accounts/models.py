@@ -149,6 +149,13 @@ class ConsumerSupplierLink(models.Model):
     requested_at = models.DateTimeField(auto_now_add=True)
     approved_at = models.DateTimeField(blank=True, null=True)
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_links')
+    assigned_sales_rep = models.ForeignKey(
+        SupplierStaff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_consumers'
+    )
     notes = models.TextField(blank=True, null=True)
     
     class Meta:

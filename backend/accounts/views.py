@@ -160,6 +160,31 @@ class ApproveLinkView(BaseLinkActionView):
     """
     new_status = 'accepted'
 
+    def post(self, request, pk):
+        response = super().post(request, pk)
+        if response.status_code == status.HTTP_200_OK:
+            # Auto-assign sales rep if not already assigned
+            try:
+                link = ConsumerSupplierLink.objects.get(pk=pk)
+                if not link.assigned_sales_rep:
+                    from django.db.models import Count
+                    # Find sales rep with least assigned consumers
+                    sales_reps = SupplierStaff.objects.filter(
+                        supplier=link.supplier,
+                        user__user_type='supplier_sales'
+                    ).annotate(
+                        num_consumers=Count('assigned_consumers')
+                    ).order_by('num_consumers')
+
+                    best_rep = sales_reps.first()
+                    if best_rep:
+                        link.assigned_sales_rep = best_rep
+                        link.save()
+            except Exception as e:
+                # Log error but don't fail the request
+                print(f"Error assigning sales rep: {e}")
+        return response
+
 
 class RejectLinkView(BaseLinkActionView):
     """
