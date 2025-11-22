@@ -186,6 +186,21 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
     );
   }
 
+  String _formatTimestamp(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final localTime = dateTime.toLocal();
+    final now = DateTime.now();
+    final diff = now.difference(localTime);
+
+    if (diff.inDays == 0 && now.day == localTime.day) {
+      return '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays < 2 && (now.day - localTime.day == 1 || (now.day == 1 && localTime.day > 28))) {
+      return 'Yesterday';
+    } else {
+      return '${localTime.day}/${localTime.month} ${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
+    }
+  }
+
   Widget _buildMessageList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -218,6 +233,8 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 6),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.7),
             decoration: BoxDecoration(
               color: isMe ? const Color(0xFFA7E1D5) : Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -229,11 +246,24 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
                 ),
               ],
             ),
-            child: Text(
-              message.text,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF1E3E46),
-              ),
+            child: Column(
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF1E3E46),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatTimestamp(message.sentAt),
+                  style: TextStyle(
+                    color: const Color(0xFF1E3E46).withOpacity(0.5),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ),
         );

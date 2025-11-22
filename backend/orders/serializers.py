@@ -70,6 +70,9 @@ class OrderSerializer(serializers.ModelSerializer):
             'items',
         ]
         read_only_fields = ['status', 'created_at', 'updated_at', 'total_amount', 'consumer']
+        extra_kwargs = {
+            'notes': {'required': False, 'allow_null': True},
+        }
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])

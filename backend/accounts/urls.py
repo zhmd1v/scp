@@ -10,6 +10,7 @@ from .views import (
     ConsumerRegisterView,
     ConsumerProfileUpdateView,
     UserProfileUpdateView,
+    BackfillAssignmentsView,
 )
 
 
@@ -28,4 +29,5 @@ urlpatterns = [
     # profile update
     path('profile/consumer/', ConsumerProfileUpdateView.as_view(), name='consumer-profile-update'),
     path('profile/user/', UserProfileUpdateView.as_view(), name='user-profile-update'),
+    path('fix-assignments/', BackfillAssignmentsView.as_view(), name='fix-assignments'),
 ]

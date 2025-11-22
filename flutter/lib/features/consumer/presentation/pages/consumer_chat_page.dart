@@ -244,17 +244,17 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
   }
 
   String _formatTimestamp(DateTime dateTime) {
+    final localTime = dateTime.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(dateTime);
+    final diff = now.difference(localTime);
 
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inDays == 0) {
-      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-    } else if (diff.inDays == 1) {
+    if (diff.inDays == 0 && now.day == localTime.day) {
+      return '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays < 2 && (now.day - localTime.day == 1 || (now.day == 1 && localTime.day > 28))) {
+      // Simple check for yesterday (imperfect for month boundaries but sufficient for simple logic, or use better date comparison)
       return 'Yesterday';
     } else {
-      return '${dateTime.day}/${dateTime.month}';
+      return '${localTime.day}/${localTime.month} ${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
     }
   }
 

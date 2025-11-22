@@ -336,7 +336,7 @@ class ConsumerOrder {
       'supplier_id': supplierId,
       'delivery_address': deliveryAddress,
       'requested_delivery_date': requestedDeliveryDate?.toIso8601String(),
-      'notes': notes,
+      'notes': notes ?? '',
       'items': items.map((item) => item.toJson()).toList(),
     };
   }
@@ -383,7 +383,7 @@ class ConsumerOrderItem {
       'product_id': productId,
       'quantity': quantity,
       'unit_price': unitPrice,
-      'remark': remark,
+      'remark': remark ?? '',
     };
   }
 }

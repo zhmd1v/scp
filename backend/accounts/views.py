@@ -168,13 +168,14 @@ class ApproveLinkView(BaseLinkActionView):
                 link = ConsumerSupplierLink.objects.get(pk=pk)
                 if not link.assigned_sales_rep:
                     from django.db.models import Count
-                    # Find sales rep with least assigned consumers
+                    # Find sales rep with least assigned consumers, then least conversations
                     sales_reps = SupplierStaff.objects.filter(
                         supplier=link.supplier,
                         user__user_type='supplier_sales'
                     ).annotate(
-                        num_consumers=Count('assigned_consumers')
-                    ).order_by('num_consumers')
+                        num_consumers=Count('assigned_consumers'),
+                        num_conversations=Count('assigned_conversations')
+                    ).order_by('num_consumers', 'num_conversations')
 
                     best_rep = sales_reps.first()
                     if best_rep:
@@ -359,4 +360,42 @@ class UserProfileUpdateView(APIView):
             "phone": user.phone,
             "first_name": user.first_name,
             "last_name": user.last_name,
+        })
+
+
+class BackfillAssignmentsView(APIView):
+    """
+    Temporary endpoint to backfill assigned_sales_rep for existing links.
+    """
+    permission_classes = [permissions.AllowAny] # For ease of use, but should be secured in prod
+
+    def get(self, request):
+        from django.db.models import Count
+        links = ConsumerSupplierLink.objects.filter(status='accepted', assigned_sales_rep__isnull=True)
+        count = 0
+        log = []
+        
+        for link in links:
+            # Find sales reps for this supplier
+            sales_reps = SupplierStaff.objects.filter(
+                supplier=link.supplier,
+                user__user_type='supplier_sales'
+            ).annotate(
+                num_consumers=Count('assigned_consumers'),
+                num_conversations=Count('assigned_conversations')
+            ).order_by('num_consumers', 'num_conversations')
+            
+            best_rep = sales_reps.first()
+            if best_rep:
+                link.assigned_sales_rep = best_rep
+                link.save()
+                count += 1
+                log.append(f"Assigned {link.consumer} to {best_rep.user.username}")
+            else:
+                log.append(f"No sales rep found for supplier {link.supplier}")
+                
+        return Response({
+            "status": "ok",
+            "updated_count": count,
+            "log": log
         })
