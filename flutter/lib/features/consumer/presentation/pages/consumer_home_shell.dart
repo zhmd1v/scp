@@ -6,6 +6,7 @@ import 'consumer_catalog_page_v2.dart';
 import 'consumer_chat_list_page.dart';
 import 'consumer_dashboard.dart';
 import 'consumer_orders_page_v2.dart';
+import 'consumer_profile_edit_page.dart';
 import 'consumer_supplier_search_page_v2.dart';
 
 enum ConsumerSection {
@@ -84,7 +85,7 @@ class ConsumerHomeShell extends StatelessWidget {
                   radius: 30,
                   backgroundColor: Color(0xFFDDE8EB),
                   child: Text(
-                    'CR',
+                    'C',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
@@ -93,18 +94,18 @@ class ConsumerHomeShell extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Consumer Account',
-                  style: TextStyle(
+                Text(
+                  auth.currentUser?['username'] as String? ?? 'Consumer',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  auth.selectedRole ?? 'Consumer',
-                  style: const TextStyle(
+                const Text(
+                  'Consumer',
+                  style: TextStyle(
                     color: Color(0xFFC8E9EF),
                     fontSize: 14,
                   ),
@@ -145,7 +146,30 @@ class ConsumerHomeShell extends StatelessWidget {
           ),
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ConsumerProfileEditPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit Profile'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF21545F),
+                side: const BorderSide(color: Color(0xFF21545F)),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: ElevatedButton.icon(
               onPressed: () {
                 auth.clearRole();

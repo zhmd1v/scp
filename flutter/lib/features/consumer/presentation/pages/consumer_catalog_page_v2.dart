@@ -537,12 +537,78 @@ class _SupplierCatalogPageState extends State<_SupplierCatalogPage> {
     );
   }
 
-  void _createOrder() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Order creation feature coming soon!'),
-      ),
-    );
+  Future<void> _createOrder() async {
+    final cartItems = _cart.entries
+        .where((e) => e.value > 0)
+        .toList();
+
+    if (cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cart is empty')),
+      );
+      return;
+    }
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+
+      // Build order items
+      final orderItems = cartItems.map((entry) {
+        final productId = entry.key;
+        final quantity = entry.value;
+        final product = _products.firstWhere((p) => p.id == productId);
+        
+        return ConsumerOrderItem(
+          productId: product.id,
+          productName: product.name,
+          quantity: quantity.toDouble(),
+          unitPrice: product.price,
+          lineTotal: product.price * quantity,
+        );
+      }).toList();
+
+      // Get address from profile
+      final userProfile = authProvider.currentUser?['consumer_profile'] as Map<String, dynamic>?;
+      final address = userProfile?['address'] as String? ?? 'Address not provided';
+
+      // Create order
+      final order = ConsumerOrder(
+        id: 0, // Will be set by backend
+        supplierId: widget.supplierId,
+        supplierName: widget.supplierName,
+        status: 'pending',
+        deliveryAddress: address,
+        items: orderItems,
+      );
+
+      print('Creating order with payload: ${order.toJson()}');
+
+      await _api.createOrder(token: token, order: order);
+
+      if (mounted) {
+        // Clear cart
+        setState(() {
+          _cart.clear();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create order: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

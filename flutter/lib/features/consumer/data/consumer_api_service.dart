@@ -279,4 +279,68 @@ class ConsumerApiService extends ApiService {
       );
     }
   }
+
+  /// Fetch current user information
+  Future<Map<String, dynamic>> fetchCurrentUser({required String token}) async {
+    final response = await get('/api/accounts/me/', token: token);
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to load user information.',
+      );
+    }
+
+    return decodeToMap(response.body);
+  }
+
+  /// Update user profile (username, phone)
+  Future<void> updateUserProfile({
+    required String token,
+    String? username,
+    String? phone,
+  }) async {
+    final body = <String, dynamic>{};
+    if (username != null) body['username'] = username;
+    if (phone != null) body['phone'] = phone;
+
+    final response = await http.patch(
+      buildUri('/api/accounts/profile/user/'),
+      headers: defaultHeaders(token: token),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to update user profile.',
+      );
+    }
+  }
+
+  /// Update consumer profile
+  Future<void> updateConsumerProfile({
+    required String token,
+    String? businessName,
+    String? businessType,
+    String? address,
+    String? city,
+    String? registrationNumber,
+  }) async {
+    final body = <String, dynamic>{};
+    if (businessName != null) body['business_name'] = businessName;
+    if (businessType != null) body['business_type'] = businessType;
+    if (address != null) body['address'] = address;
+    if (city != null) body['city'] = city;
+    if (registrationNumber != null) body['registration_number'] = registrationNumber;
+
+    final response = await http.patch(
+      buildUri('/api/accounts/profile/consumer/'),
+      headers: defaultHeaders(token: token),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to update consumer profile.',
+      );
+    }
+  }
 }

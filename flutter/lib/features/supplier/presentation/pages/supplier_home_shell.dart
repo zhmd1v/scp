@@ -63,7 +63,7 @@ class SupplierHomeShell extends StatelessWidget {
                   radius: 30,
                   backgroundColor: Color(0xFFDDE8EB),
                   child: Text(
-                    'SR',
+                    'S',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
@@ -72,18 +72,18 @@ class SupplierHomeShell extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Sales Representative',
-                  style: TextStyle(
+                Text(
+                  auth.currentUser?['username'] as String? ?? 'Supplier',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  auth.selectedRole ?? 'Supplier',
-                  style: const TextStyle(
+                const Text(
+                  'Sales Representative',
+                  style: TextStyle(
                     color: Color(0xFFC8E9EF),
                     fontSize: 14,
                   ),

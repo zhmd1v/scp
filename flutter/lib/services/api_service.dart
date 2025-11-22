@@ -108,10 +108,15 @@ class ApiService {
         if (parsed['detail'] is String) return parsed['detail'] as String;
         if (parsed['error'] is String) return parsed['error'] as String;
 
-        final listSegments = parsed.values.whereType<List<dynamic>>();
-        if (listSegments.isNotEmpty) {
-          final firstList = listSegments.first;
-          if (firstList.isNotEmpty) return firstList.first.toString();
+        // Check for field-specific errors
+        for (final key in parsed.keys) {
+          final value = parsed[key];
+          if (value is List && value.isNotEmpty) {
+            return '$key: ${value.first}';
+          }
+          if (value is String) {
+            return '$key: $value';
+          }
         }
       }
     } catch (_) {

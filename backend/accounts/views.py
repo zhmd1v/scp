@@ -264,3 +264,74 @@ class EmailOrUsernameAuthTokenView(ObtainAuthToken):
             "username": user.username,
             "user_type": user.user_type,
         })
+
+
+class ConsumerProfileUpdateView(generics.UpdateAPIView):
+    """
+    Update consumer profile information.
+    """
+    serializer_class = ConsumerProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        try:
+            return ConsumerProfile.objects.get(user=self.request.user)
+        except ConsumerProfile.DoesNotExist:
+            raise ValidationError("Consumer profile not found for current user.")
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # Also update user fields if provided
+        user = request.user
+        user_updated = False
+        if 'username' in request.data:
+            user.username = request.data['username']
+            user_updated = True
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+            user_updated = True
+        if user_updated:
+            user.save()
+        
+        return Response(serializer.data)
+
+
+class UserProfileUpdateView(APIView):
+    """
+    Update user information (username, phone, etc.)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+        updated = False
+        
+        if 'username' in request.data:
+            user.username = request.data['username']
+            updated = True
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+            updated = True
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+            updated = True
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+            updated = True
+            
+        if updated:
+            user.save()
+            
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "phone": user.phone,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        })

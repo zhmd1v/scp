@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../providers/auth_provider.dart';
+import '../../data/consumer_api_service.dart';
+import '../../data/consumer_models.dart';
 import 'consumer_chat_page.dart';
 import 'consumer_home_shell.dart';
 
@@ -11,112 +15,185 @@ class ConsumerChatListPage extends StatefulWidget {
 }
 
 class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
+  final ConsumerApiService _api = ConsumerApiService();
   int _selectedTab = 0;
+  late Future<_ChatData> _dataFuture;
+  List<ConsumerConversation> _conversations = [];
+  List<ConsumerSupplierLink> _links = [];
 
-  final List<_ChatSummary> _activeChats = const [
-    _ChatSummary(
-      name: 'Almaty Produce Hub',
-      role: 'Primary supplier',
-      lastMessage: 'We can deliver before lunch.',
-      time: '09:42',
-    ),
-    _ChatSummary(
-      name: 'Caspi Seafood Group',
-      role: 'Seafood partner',
-      lastMessage: 'New price list shared.',
-      time: 'Yesterday',
-    ),
-    _ChatSummary(
-      name: 'Steppe Dairy Collective',
-      role: 'Dairy supplier',
-      lastMessage: 'Sample invoice attached.',
-      time: 'Mon',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _dataFuture = _loadData();
+  }
 
-  final List<_SupplierContact> _linkedSuppliers = const [
-    _SupplierContact(name: 'Almaty Produce Hub', focus: 'Produce'),
-    _SupplierContact(name: 'Caspi Seafood Group', focus: 'Seafood'),
-    _SupplierContact(name: 'Steppe Dairy Collective', focus: 'Dairy'),
-    _SupplierContact(name: 'Nomad Grain Partners', focus: 'Dry goods'),
-  ];
+  Future<_ChatData> _loadData() async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      throw const AuthException('You are not authenticated.');
+    }
+
+    final conversations = await _api.fetchConversations(token: token);
+    final links = await _api.fetchLinks(token: token);
+    
+    // Filter out empty chats and duplicates
+    final uniqueConversations = <int, ConsumerConversation>{};
+    for (final conv in conversations) {
+      if (conv.lastMessage != null && conv.lastMessage!.isNotEmpty) {
+        // Keep the most recent one if duplicates exist (though backend should handle this)
+        if (!uniqueConversations.containsKey(conv.supplierId)) {
+          uniqueConversations[conv.supplierId] = conv;
+        }
+      }
+    }
+
+    _conversations = uniqueConversations.values.toList();
+    _links = links.where((l) => l.isAccepted).toList();
+
+    return _ChatData(conversations: conversations, links: _links);
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _dataFuture = _loadData();
+    });
+    await _dataFuture;
+  }
 
   @override
   Widget build(BuildContext context) {
     return ConsumerHomeShell(
       title: consumerSectionTitle(ConsumerSection.chats),
       section: ConsumerSection.chats,
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Chat with active suppliers or reach out to a new one.',
-                style: TextStyle(fontSize: 14, color: Colors.black54),
+      child: FutureBuilder<_ChatData>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                  ElevatedButton(
+                    onPressed: _refresh,
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Chat with active suppliers or reach out to a new one.',
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _ChatTabs(
+                  selectedIndex: _selectedTab,
+                  onChanged: (value) => setState(() => _selectedTab = value),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _selectedTab == 0
+                      ? _buildActiveChats(context)
+                      : _buildLinkedSuppliers(context),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          _ChatTabs(
-            selectedIndex: _selectedTab,
-            onChanged: (value) => setState(() => _selectedTab = value),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: _selectedTab == 0
-                ? _buildActiveChats(context)
-                : _buildLinkedSuppliers(context),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildActiveChats(BuildContext context) {
+    if (_conversations.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'No active chats yet. Start a conversation with a linked supplier.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _activeChats.length,
+      itemCount: _conversations.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
-        final chat = _activeChats[index];
-        return _ChatTile(
-          summary: chat,
-          onTap: () => _openChat(context, chat.name),
+        final conversation = _conversations[index];
+        return _ConversationTile(
+          conversation: conversation,
+          onTap: () => _openChat(context, conversation),
         );
       },
     );
   }
 
   Widget _buildLinkedSuppliers(BuildContext context) {
+    if (_links.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'No linked suppliers yet. Request access to suppliers first.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: _linkedSuppliers.length,
+      itemCount: _links.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
-        final supplier = _linkedSuppliers[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+        final link = _links[index];
+        return GestureDetector(
+          onTap: () => _openChatWithSupplier(context, link.supplier),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 26,
                 backgroundColor: const Color(0xFFDDE8EB),
                 child: Text(
-                  supplier.name.substring(0, 1),
+                  link.supplier.companyName.substring(0, 1),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -130,7 +207,7 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      supplier.name,
+                      link.supplier.companyName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -139,29 +216,137 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${supplier.focus} • No active chat',
+                      '${link.supplier.city ?? "Supplier"} • No active chat',
                       style: const TextStyle(fontSize: 13, color: Colors.black54),
                     ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => _openChat(context, supplier.name),
+                onPressed: () => _openChatWithSupplier(context, link.supplier),
                 child: const Text('Say hi'),
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }
 
-  void _openChat(BuildContext context, String supplier) {
+  void _openChat(BuildContext context, ConsumerConversation conversation) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ConsumerChatPage(supplier: supplier),
+        builder: (_) => ConsumerChatPage(
+          supplier: conversation.supplierName,
+          conversationId: conversation.id,
+          supplierId: conversation.supplierId,
+        ),
       ),
     );
+  }
+
+  void _openChatWithSupplier(BuildContext context, ConsumerSupplier supplier) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ConsumerChatPage(
+          supplier: supplier.companyName,
+          supplierId: supplier.id,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatData {
+  const _ChatData({required this.conversations, required this.links});
+  
+  final List<ConsumerConversation> conversations;
+  final List<ConsumerSupplierLink> links;
+}
+
+class _ConversationTile extends StatelessWidget {
+  const _ConversationTile({required this.conversation, required this.onTap});
+
+  final ConsumerConversation conversation;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: const Color(0xFFA7E1D5),
+              child: Text(
+                conversation.supplierName.substring(0, 1),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF21545F),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    conversation.supplierName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E3E46),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    conversation.lastMessage ?? 'No messages yet',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              _formatTimestamp(conversation.lastMessageAt ?? DateTime.now()),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    
+    if (diff.inDays == 0) {
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else {
+      return '${dateTime.day}/${dateTime.month}';
+    }
   }
 }
 
@@ -250,101 +435,3 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
-
-class _ChatTile extends StatelessWidget {
-  const _ChatTile({required this.summary, required this.onTap});
-
-  final _ChatSummary summary;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: const Color(0xFFA7E1D5),
-              child: Text(
-                summary.name.substring(0, 1),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF21545F),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    summary.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E3E46),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    summary.role,
-                    style: const TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    summary.lastMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              summary.time,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatSummary {
-  const _ChatSummary({
-    required this.name,
-    required this.role,
-    required this.lastMessage,
-    required this.time,
-  });
-
-  final String name;
-  final String role;
-  final String lastMessage;
-  final String time;
-}
-
-class _SupplierContact {
-  const _SupplierContact({required this.name, required this.focus});
-
-  final String name;
-  final String focus;
-}
-

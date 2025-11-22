@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../data/consumer_api_service.dart';
+import '../../data/consumer_models.dart';
+import '../../../../providers/auth_provider.dart';
 
 class ConsumerChatPage extends StatefulWidget {
-  const ConsumerChatPage({super.key, required this.supplier});
+  const ConsumerChatPage({
+    super.key,
+    required this.supplier,
+    this.conversationId,
+    this.supplierId,
+  });
 
   final String supplier;
+  final int? conversationId;
+  final int? supplierId;
 
   @override
   State<ConsumerChatPage> createState() => _ConsumerChatPageState();
@@ -11,18 +22,48 @@ class ConsumerChatPage extends StatefulWidget {
 
 class _ConsumerChatPageState extends State<ConsumerChatPage> {
   final TextEditingController _controller = TextEditingController();
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      author: _ChatAuthor.supplier,
-      text: 'Good morning! Need help with tomorrow’s delivery?',
-      timestamp: '09:31',
-    ),
-    const _ChatMessage(
-      author: _ChatAuthor.consumer,
-      text: 'Yes, can we add 5kg of cherry tomatoes?',
-      timestamp: '09:33',
-    ),
-  ];
+  final ConsumerApiService _api = ConsumerApiService();
+  List<ConsumerMessage> _messages = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    if (widget.conversationId == null) {
+      setState(() {
+        _isLoading = false;
+        _messages = [];
+      });
+      return;
+    }
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+      final userId = authProvider.currentUser?['id'] as int? ?? 0;
+
+      final messages = await _api.fetchMessages(
+        token: token,
+        conversationId: widget.conversationId!,
+        currentUserId: userId,
+      );
+
+      setState(() {
+        _messages = messages;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -48,51 +89,75 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (_, index) {
-                final message = _messages[index];
-                final isMe = message.author == _ChatAuthor.consumer;
-                return Align(
-                  alignment:
-                      isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(12),
-                    constraints:
-                        BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                    decoration: BoxDecoration(
-                      color: isMe
-                          ? const Color(0xFF21545F)
-                          : const Color(0xFFE3EDF4),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: isMe
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.text,
-                          style: TextStyle(
-                            color: isMe ? Colors.white : const Color(0xFF1E3E46),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Text(
+                            'Error: $_error',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          message.timestamp,
-                          style: TextStyle(
-                            color: isMe ? Colors.white70 : Colors.black45,
-                            fontSize: 11,
+                      )
+                    : _messages.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Text(
+                                'No messages yet. Start the conversation!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _messages.length,
+                            itemBuilder: (_, index) {
+                              final message = _messages[index];
+                              final isMe = message.isFromMe;
+                              return Align(
+                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.all(12),
+                                  constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                  decoration: BoxDecoration(
+                                    color: isMe
+                                        ? const Color(0xFF21545F)
+                                        : const Color(0xFFE3EDF4),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: isMe
+                                        ? CrossAxisAlignment.end
+                                        : CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        message.text,
+                                        style: TextStyle(
+                                          color:
+                                              isMe ? Colors.white : const Color(0xFF1E3E46),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatTimestamp(message.createdAt),
+                                        style: TextStyle(
+                                          color: isMe ? Colors.white70 : Colors.black45,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
           _MessageInput(
             controller: _controller,
@@ -100,76 +165,149 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF21545F),
-        onPressed: _openCatalogQuickPick,
-        child: const Icon(Icons.add_shopping_cart),
-      ),
     );
   }
 
-  void _handleSendMessage(String text) {
+  Future<void> _handleSendMessage(String text) async {
     if (text.trim().isEmpty) return;
-    setState(() {
-      _messages.add(
-        _ChatMessage(
-          author: _ChatAuthor.consumer,
+
+    if (widget.conversationId == null && widget.supplierId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot send message: No conversation or supplier info')),
+      );
+      return;
+    }
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+
+      // If no conversation exists, create one with the supplier
+      int conversationId = widget.conversationId ?? 0;
+      
+      if (conversationId == 0 && widget.supplierId != null) {
+        // Create new conversation
+        final response = await _api.post(
+          '/api/chat/conversations/',
+          token: token,
+          body: {
+            'supplier': widget.supplierId,
+            'conversation_type': 'supplier_consumer',
+          },
+        );
+        
+        if (response.statusCode >= 400) {
+          throw Exception('Failed to create conversation');
+        }
+        
+        final data = _api.decodeToMap(response.body);
+        conversationId = data['id'] as int;
+        
+        // Now send the message to the newly created conversation
+        await _api.sendMessage(
+          token: token,
+          conversationId: conversationId,
           text: text.trim(),
-          timestamp: 'Just now',
+        );
+        
+        // Reload the page with the new conversation ID
+        if (mounted) {
+          _controller.clear();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ConsumerChatPage(
+                supplier: widget.supplier,
+                conversationId: conversationId,
+                supplierId: widget.supplierId,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      await _api.sendMessage(
+        token: token,
+        conversationId: conversationId,
+        text: text.trim(),
+      );
+
+      _controller.clear();
+      await _loadMessages();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e')),
+        );
+      }
+    }
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    } else if (diff.inDays == 0) {
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else {
+      return '${dateTime.day}/${dateTime.month}';
+    }
+  }
+
+  Future<void> _openCatalogQuickPick() async {
+    if (widget.supplierId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please open this chat from your linked suppliers to view products')),
+        );
+      }
+      return;
+    }
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+
+      final products = await _api.fetchSupplierProducts(
+        token: token,
+        supplierId: widget.supplierId!,
+      );
+
+      if (!mounted) return;
+
+      if (products.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No products available')),
+        );
+        return;
+      }
+
+      // Show cart snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: _QuickOrderCart(
+            products: products,
+            supplierId: widget.supplierId!,
+            supplierName: widget.supplier,
+          ),
+          duration: const Duration(days: 1), // Keep it open
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.white,
+          elevation: 8,
+          padding: EdgeInsets.zero,
         ),
       );
-    });
-    _controller.clear();
-  }
-
-  void _openCatalogQuickPick() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        final items = [
-          'Baby spinach • 3kg bag',
-          'Cherry tomatoes • 5kg crate',
-          'Thai basil • 500g bundle',
-        ];
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Quick add from catalog',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...items.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.shopping_bag_outlined),
-                  title: Text(item),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$item added to draft order')),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load products: $e')),
         );
-      },
-    );
+      }
+    }
   }
 }
 
@@ -220,17 +358,244 @@ class _MessageInput extends StatelessWidget {
   }
 }
 
-class _ChatMessage {
-  const _ChatMessage({
-    required this.author,
-    required this.text,
-    required this.timestamp,
+class _QuickOrderCart extends StatefulWidget {
+  const _QuickOrderCart({
+    required this.products,
+    required this.supplierId,
+    required this.supplierName,
   });
 
-  final _ChatAuthor author;
-  final String text;
-  final String timestamp;
+  final List<ConsumerProduct> products;
+  final int supplierId;
+  final String supplierName;
+
+  @override
+  State<_QuickOrderCart> createState() => _QuickOrderCartState();
 }
 
-enum _ChatAuthor { consumer, supplier }
+class _QuickOrderCartState extends State<_QuickOrderCart> {
+  final Map<int, int> _cart = {}; // productId -> quantity
+  final ConsumerApiService _api = ConsumerApiService();
 
+  double get _total {
+    double sum = 0;
+    for (var entry in _cart.entries) {
+      final product = widget.products.firstWhere((p) => p.id == entry.key);
+      sum += product.price * entry.value;
+    }
+    return sum;
+  }
+
+  void _updateQuantity(int productId, int delta) {
+    setState(() {
+      final current = _cart[productId] ?? 0;
+      final newQuantity = current + delta;
+      if (newQuantity <= 0) {
+        _cart.remove(productId);
+      } else {
+        _cart[productId] = newQuantity;
+      }
+    });
+  }
+
+  Future<void> _placeOrder(BuildContext context) async {
+    if (_cart.isEmpty) return;
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+
+      // Build order items
+      final orderItems = _cart.entries.map((entry) {
+        final product = widget.products.firstWhere((p) => p.id == entry.key);
+        return ConsumerOrderItem(
+          productId: product.id,
+          productName: product.name,
+          quantity: entry.value.toDouble(),
+          unitPrice: product.price,
+          lineTotal: product.price * entry.value,
+        );
+      }).toList();
+
+      // Create order
+      final order = ConsumerOrder(
+        id: 0,
+        supplierId: widget.supplierId,
+        supplierName: widget.supplierName,
+        status: 'pending',
+        items: orderItems,
+      );
+
+      await _api.createOrder(token: token, order: order);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to place order: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 400),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Quick Order',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF21545F),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Products list
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: widget.products.length,
+              itemBuilder: (context, index) {
+                final product = widget.products[index];
+                final quantity = _cart[product.id] ?? 0;
+                
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade100),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '\$${product.price.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: quantity > 0
+                                ? () => _updateQuantity(product.id, -1)
+                                : null,
+                            color: const Color(0xFF21545F),
+                            iconSize: 24,
+                          ),
+                          SizedBox(
+                            width: 32,
+                            child: Text(
+                              '$quantity',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () => _updateQuantity(product.id, 1),
+                            color: const Color(0xFF21545F),
+                            iconSize: 24,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          // Order button
+          if (_cart.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _placeOrder(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF21545F),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Order • \$${_total.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

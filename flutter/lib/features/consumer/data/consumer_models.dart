@@ -153,11 +153,11 @@ class ConsumerProduct {
       category: categoryName,
       name: json['name'] as String? ?? 'Product #${json['id']}',
       description: json['description'] as String?,
-      price: _toDouble(json['price']) ?? 0,
+      price: _toDouble(json['unit_price']) ?? 0,
       unit: json['unit'] as String?,
       isAvailable: json['is_available'] as bool? ?? true,
-      minOrderQuantity: _toDouble(json['min_order_quantity']),
-      stockLevel: _toInt(json['stock_level']),
+      minOrderQuantity: _toDouble(json['minimum_order_quantity']),
+      stockLevel: _toInt(json['stock_quantity']),
     );
   }
 
@@ -181,11 +181,11 @@ class ConsumerProduct {
       'catalog': catalogId,
       'name': name,
       'description': description,
-      'price': price,
+      'unit_price': price,
       'unit': unit,
       'is_available': isAvailable,
-      'min_order_quantity': minOrderQuantity,
-      'stock_level': stockLevel,
+      'minimum_order_quantity': minOrderQuantity,
+      'stock_quantity': stockLevel,
     };
   }
 }
@@ -230,7 +230,7 @@ class ConsumerOrder {
     required this.id,
     required this.status,
     required this.items,
-    this.supplierId,
+    required this.supplierId,
     this.supplierName,
     this.deliveryAddress,
     this.totalAmount,
@@ -247,14 +247,14 @@ class ConsumerOrder {
 
     // Extract supplier info
     final supplierData = json['supplier'];
-    int? supplierId;
+    int supplierId = 0;
     String? supplierName;
 
     if (supplierData is Map<String, dynamic>) {
-      supplierId = _toInt(supplierData['id']);
+      supplierId = _toInt(supplierData['id']) ?? 0;
       supplierName = supplierData['company_name'] as String?;
     } else {
-      supplierId = _toInt(supplierData);
+      supplierId = _toInt(supplierData) ?? 0;
     }
 
     return ConsumerOrder(
@@ -273,7 +273,7 @@ class ConsumerOrder {
   }
 
   final int id;
-  final int? supplierId;
+  final int supplierId;
   final String? supplierName;
   final String status;
   final String? deliveryAddress;
@@ -333,7 +333,7 @@ class ConsumerOrder {
 
   Map<String, dynamic> toJson() {
     return {
-      'supplier': supplierId,
+      'supplier_id': supplierId,
       'delivery_address': deliveryAddress,
       'requested_delivery_date': requestedDeliveryDate?.toIso8601String(),
       'notes': notes,
@@ -380,7 +380,7 @@ class ConsumerOrderItem {
 
   Map<String, dynamic> toJson() {
     return {
-      'product': productId,
+      'product_id': productId,
       'quantity': quantity,
       'unit_price': unitPrice,
       'remark': remark,

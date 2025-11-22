@@ -29,8 +29,11 @@ class ConsumerProfileSerializer(serializers.ModelSerializer):
             'id',
             'business_name',
             'business_type',
+            'address',
             'city',
+            'registration_number',
         ]
+        read_only_fields = ['id']
 
 
 class SupplierStaffSerializer(serializers.ModelSerializer):

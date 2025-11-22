@@ -6,6 +6,7 @@ from .models import Order, OrderItem, OrderStatusHistory
 from catalog.models import Product
 from catalog.serializers import ProductSerializer
 from accounts.serializers import SupplierProfileSerializer
+from accounts.models import SupplierProfile
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -44,6 +45,12 @@ class OrderSerializer(serializers.ModelSerializer):
     """
     items = OrderItemSerializer(many=True)
     supplier = SupplierProfileSerializer(read_only=True)
+    supplier_id = serializers.PrimaryKeyRelatedField(
+        queryset=SupplierProfile.objects.all(),
+        source='supplier',
+        write_only=True,
+        required=True
+    )
 
     class Meta:
         model = Order
@@ -51,6 +58,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'id',
             'consumer',
             'supplier',
+            'supplier_id',
             'delivery_option',
             'status',
             'created_at',
@@ -61,7 +69,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'notes',
             'items',
         ]
-        read_only_fields = ['status', 'created_at', 'updated_at', 'total_amount']
+        read_only_fields = ['status', 'created_at', 'updated_at', 'total_amount', 'consumer']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])

@@ -8,6 +8,8 @@ from .views import (
     RejectLinkView,
     BlockLinkView,
     ConsumerRegisterView,
+    ConsumerProfileUpdateView,
+    UserProfileUpdateView,
 )
 
 
@@ -22,4 +24,8 @@ urlpatterns = [
     path('links/<int:pk>/reject/', RejectLinkView.as_view(), name='link-reject'),
     path('links/<int:pk>/block/', BlockLinkView.as_view(), name='link-block'),
     path('register/', ConsumerRegisterView.as_view(), name='consumer-register'),
+    
+    # profile update
+    path('profile/consumer/', ConsumerProfileUpdateView.as_view(), name='consumer-profile-update'),
+    path('profile/user/', UserProfileUpdateView.as_view(), name='user-profile-update'),
 ]
