@@ -282,11 +282,19 @@ class _SupplierCatalogPageState extends State<_SupplierCatalogPage> {
   List<ConsumerProduct> _products = [];
   final Map<int, int> _cart = {}; // productId -> quantity
   String? _selectedCategory;
+  DateTime? _requestedDate;
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _productsFuture = _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<List<ConsumerProduct>> _loadProducts() async {
@@ -481,32 +489,102 @@ class _SupplierCatalogPageState extends State<_SupplierCatalogPage> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
-                  itemCount: cartProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = cartProducts[index];
-                    final quantity = _cart[product.id]!;
-                    final total = product.price * quantity;
+                  children: [
+                    ...cartProducts.map((product) {
+                      final quantity = _cart[product.id]!;
+                      final total = product.price * quantity;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(product.name),
-                        subtitle: Text(
-                          '${product.price.toStringAsFixed(0)} ₸ × $quantity ${product.unit ?? ''}',
-                        ),
-                        trailing: Text(
-                          '${total.toStringAsFixed(0)} ₸',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(product.name),
+                          subtitle: Text(
+                            '${product.price.toStringAsFixed(0)} ₸ × $quantity ${product.unit ?? ''}',
+                          ),
+                          trailing: Text(
+                            '${total.toStringAsFixed(0)} ₸',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
+                      );
+                    }),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Order Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0E3E45),
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now().add(const Duration(days: 1)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 30)),
+                        );
+                        if (date != null) {
+                          setState(() => _requestedDate = date);
+                          // Rebuild the bottom sheet to show selected date
+                          Navigator.pop(context);
+                          _showCart();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today, color: Color(0xFF0E3E45)),
+                            const SizedBox(width: 12),
+                            Text(
+                              _requestedDate == null
+                                  ? 'Select requested delivery date'
+                                  : '${_requestedDate!.day}/${_requestedDate!.month}/${_requestedDate!.year}',
+                              style: TextStyle(
+                                color: _requestedDate == null
+                                    ? Colors.grey.shade600
+                                    : Colors.black87,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Add notes for the supplier...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF0E3E45)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Container(
@@ -579,6 +657,8 @@ class _SupplierCatalogPageState extends State<_SupplierCatalogPage> {
         supplierName: widget.supplierName,
         status: 'pending',
         deliveryAddress: address,
+        requestedDeliveryDate: _requestedDate,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: orderItems,
       );
 

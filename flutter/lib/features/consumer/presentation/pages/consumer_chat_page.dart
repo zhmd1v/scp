@@ -376,6 +376,14 @@ class _QuickOrderCart extends StatefulWidget {
 class _QuickOrderCartState extends State<_QuickOrderCart> {
   final Map<int, int> _cart = {}; // productId -> quantity
   final ConsumerApiService _api = ConsumerApiService();
+  DateTime? _requestedDate;
+  final TextEditingController _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   double get _total {
     double sum = 0;
@@ -417,14 +425,23 @@ class _QuickOrderCartState extends State<_QuickOrderCart> {
         );
       }).toList();
 
+      // Get address from profile
+      final userProfile = authProvider.currentUser?['consumer_profile'] as Map<String, dynamic>?;
+      final address = userProfile?['address'] as String? ?? 'Address not provided';
+
       // Create order
       final order = ConsumerOrder(
         id: 0,
         supplierId: widget.supplierId,
         supplierName: widget.supplierName,
         status: 'pending',
+        deliveryAddress: address,
+        requestedDeliveryDate: _requestedDate,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: orderItems,
       );
+
+      print('Creating order with payload: ${order.toJson()}');
 
       await _api.createOrder(token: token, order: order);
 
@@ -452,7 +469,7 @@ class _QuickOrderCartState extends State<_QuickOrderCart> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 400),
+      constraints: const BoxConstraints(maxHeight: 600),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -515,6 +532,7 @@ class _QuickOrderCartState extends State<_QuickOrderCart> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
+                                color: Color(0xFF21545F),
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -546,6 +564,7 @@ class _QuickOrderCartState extends State<_QuickOrderCart> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
+                                color: Color(0xFF21545F),
                               ),
                             ),
                           ),
@@ -563,6 +582,73 @@ class _QuickOrderCartState extends State<_QuickOrderCart> {
               },
             ),
           ),
+          // Date and Notes
+          if (_cart.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(const Duration(days: 1)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (date != null) {
+                        setState(() => _requestedDate = date);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, color: Color(0xFF21545F)),
+                          const SizedBox(width: 12),
+                          Text(
+                            _requestedDate == null
+                                ? 'Select requested delivery date'
+                                : '${_requestedDate!.day}/${_requestedDate!.month}/${_requestedDate!.year}',
+                            style: TextStyle(
+                              color: _requestedDate == null
+                                  ? Colors.grey.shade600
+                                  : Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _notesController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Add notes...',
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF21545F)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Order button
           if (_cart.isNotEmpty)
             Container(

@@ -429,17 +429,6 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
-                                if (item.remark != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Note: ${item.remark}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),

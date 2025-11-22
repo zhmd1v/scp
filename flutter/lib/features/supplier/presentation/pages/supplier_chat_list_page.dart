@@ -202,7 +202,9 @@ class _LinkList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (links.isEmpty) {
+    final acceptedLinks = links.where((l) => l.isAccepted).toList();
+
+    if (acceptedLinks.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -213,10 +215,10 @@ class _LinkList extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: links.length,
+      itemCount: acceptedLinks.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
-        final link = links[index];
+        final link = acceptedLinks[index];
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -257,114 +259,15 @@ class _LinkList extends StatelessWidget {
                         color: Color(0xFF1E3E46),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: link.statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            link.statusLabel,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: link.statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
-              if (link.isPending) ...[
-                IconButton(
-                  onPressed: () => _rejectLink(context, link),
-                  icon: const Icon(Icons.close, color: Colors.red),
-                  tooltip: 'Reject',
-                ),
-                IconButton(
-                  onPressed: () => _approveLink(context, link),
-                  icon: const Icon(Icons.check, color: Colors.green),
-                  tooltip: 'Approve',
-                ),
-              ] else
-                const Icon(Icons.people_outline, color: Color(0xFF21545F)),
+              const Icon(Icons.people_outline, color: Color(0xFF21545F)),
             ],
           ),
         );
       },
     );
-  }
-
-  void _approveLink(BuildContext context, SupplierLink link) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final token = authProvider.token;
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not authenticated')),
-      );
-      return;
-    }
-
-    try {
-      final api = SupplierApiService();
-      await api.approveLinkRequest(token: token, linkId: link.id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Approved ${link.consumerName ?? "consumer"}')),
-        );
-        // Trigger refresh
-        final state = context.findAncestorStateOfType<_SupplierChatListPageState>();
-        state?._refresh();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to approve: $e')),
-        );
-      }
-    }
-  }
-
-  void _rejectLink(BuildContext context, SupplierLink link) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final token = authProvider.token;
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not authenticated')),
-      );
-      return;
-    }
-
-    try {
-      final api = SupplierApiService();
-      await api.rejectLinkRequest(token: token, linkId: link.id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Rejected ${link.consumerName ?? "consumer"}')),
-        );
-        // Trigger refresh
-        final state = context.findAncestorStateOfType<_SupplierChatListPageState>();
-        state?._refresh();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to reject: $e')),
-        );
-      }
-    }
   }
 }
 

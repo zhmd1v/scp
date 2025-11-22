@@ -335,7 +335,9 @@ class ConsumerOrder {
     return {
       'supplier_id': supplierId,
       'delivery_address': deliveryAddress,
-      'requested_delivery_date': requestedDeliveryDate?.toIso8601String(),
+      'requested_delivery_date': requestedDeliveryDate != null
+          ? '${requestedDeliveryDate!.year}-${requestedDeliveryDate!.month.toString().padLeft(2, '0')}-${requestedDeliveryDate!.day.toString().padLeft(2, '0')}'
+          : null,
       'notes': notes,
       'items': items.map((item) => item.toJson()).toList(),
     };
@@ -352,7 +354,6 @@ class ConsumerOrderItem {
     required this.lineTotal,
     this.id,
     this.unit,
-    this.remark,
   });
 
   factory ConsumerOrderItem.fromJson(Map<String, dynamic> json) {
@@ -365,7 +366,6 @@ class ConsumerOrderItem {
       unitPrice: _toDouble(json['unit_price']) ?? 0,
       lineTotal: _toDouble(json['line_total']) ?? 0,
       unit: product['unit']?.toString() ?? json['unit']?.toString(),
-      remark: json['remark'] as String?,
     );
   }
 
@@ -376,14 +376,12 @@ class ConsumerOrderItem {
   final double unitPrice;
   final double lineTotal;
   final String? unit;
-  final String? remark;
 
   Map<String, dynamic> toJson() {
     return {
       'product_id': productId,
       'quantity': quantity,
       'unit_price': unitPrice,
-      'remark': remark,
     };
   }
 }
