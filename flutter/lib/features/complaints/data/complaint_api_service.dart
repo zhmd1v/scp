@@ -4,13 +4,13 @@ import '../../../config/api_config.dart';
 import 'complaint_models.dart';
 
 class ComplaintApiService {
-  final String baseUrl = ApiConfig.baseUrl;
+  final String baseUrl = kBackendBaseUrl;
 
   // Helper method to get auth headers
   Map<String, String> _getHeaders(String? token) {
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (token != null) 'Authorization': 'Token $token',
     };
   }
 
