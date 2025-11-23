@@ -21,7 +21,7 @@ urlpatterns = [
      # изменение статусов
     path('orders/<int:pk>/confirm/', SupplierConfirmOrderView.as_view(), name='order-confirm'),
     path('orders/<int:pk>/reject/', SupplierRejectOrderView.as_view(), name='order-reject'),
-    path('<int:pk>/cancel/', ConsumerCancelOrderView.as_view(), name='consumer-cancel-order'),
-    path('<int:pk>/complete/', ConsumerCompleteOrderView.as_view(), name='consumer-complete-order'),
+    path('orders/<int:pk>/cancel/', ConsumerCancelOrderView.as_view(), name='consumer-cancel-order'),
+    path('orders/<int:pk>/complete/', ConsumerCompleteOrderView.as_view(), name='consumer-complete-order'),
     path('<int:order_id>/history/', OrderStatusHistoryListView.as_view(), name='order-status-history'),
 ]

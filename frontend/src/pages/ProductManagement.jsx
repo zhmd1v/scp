@@ -7,7 +7,8 @@ import "./products.css";
 export default function ProductManagement() {
     const { t } = useTranslation();
     const { user, token } = useAuth();
-    const supplierId = user?.supplier_id || 1;
+    // Fix: Extract supplier_id from the correct nested path
+    const supplierId = user?.supplier_staff?.supplier_id || null;
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -111,6 +112,13 @@ export default function ProductManagement() {
 
     // SAVE PRODUCT
     const saveProduct = async () => {
+        // Validate supplier association
+        if (!supplierId) {
+            console.error("Cannot save product: User is not associated with any supplier");
+            alert(t("products.error_no_supplier") || "You are not associated with any supplier. Please contact your administrator.");
+            return;
+        }
+
         console.log("Form before saving:", form);
 
         const fd = new FormData();
@@ -161,6 +169,7 @@ export default function ProductManagement() {
             loadProducts();
         } catch (err) {
             console.error("Error saving product:", err.response?.data || err);
+            alert(t("products.error_save") || `Error: ${err.response?.data?.detail || err.message}`);
         }
     };
 
@@ -205,54 +214,54 @@ export default function ProductManagement() {
 
             <table className="products-table">
                 <thead>
-                <tr>
-                    <th>{t("products.image")}</th>
-                    <th>{t("products.name")}</th>
-                    <th>{t("products.unit")}</th>
-                    <th>{t("products.price")}</th>
-                    <th>{t("products.stock")}</th>
-                    <th>{t("products.category")}</th>
-                    <th>{t("products.available")}</th>
-                    <th>{t("common.actions")}</th>
-                </tr>
+                    <tr>
+                        <th>{t("products.image")}</th>
+                        <th>{t("products.name")}</th>
+                        <th>{t("products.unit")}</th>
+                        <th>{t("products.price")}</th>
+                        <th>{t("products.stock")}</th>
+                        <th>{t("products.category")}</th>
+                        <th>{t("products.available")}</th>
+                        <th>{t("common.actions")}</th>
+                    </tr>
                 </thead>
 
                 <tbody>
-                {products.map((p) => (
-                    <tr key={p.id}>
-                        <td>
-                            {p.imagePreview ? (
-                                <img src={p.imagePreview} className="thumb" alt="" />
-                            ) : (
-                                <div className="thumb placeholder">{t("products.no_image")}</div>
-                            )}
-                        </td>
+                    {products.map((p) => (
+                        <tr key={p.id}>
+                            <td>
+                                {p.imagePreview ? (
+                                    <img src={p.imagePreview} className="thumb" alt="" />
+                                ) : (
+                                    <div className="thumb placeholder">{t("products.no_image")}</div>
+                                )}
+                            </td>
 
-                        <td>{p.name}</td>
-                        <td>{p.unit}</td>
-                        <td>{p.unit_price}</td>
-                        <td>{p.stock_quantity}</td>
-                        <td>{p.category_obj?.name}</td>
+                            <td>{p.name}</td>
+                            <td>{p.unit}</td>
+                            <td>{p.unit_price}</td>
+                            <td>{p.stock_quantity}</td>
+                            <td>{p.category_obj?.name}</td>
 
-                        <td>
-                            <button
-                                className={p.is_available ? "tag green" : "tag red"}
-                                onClick={() => toggleAvailability(p)}
-                            >
-                                {p.is_available ? t("common.yes") : t("common.no")}
-                            </button>
-                        </td>
+                            <td>
+                                <button
+                                    className={p.is_available ? "tag green" : "tag red"}
+                                    onClick={() => toggleAvailability(p)}
+                                >
+                                    {p.is_available ? t("common.yes") : t("common.no")}
+                                </button>
+                            </td>
 
-                        <td>
-                            <button className="btn-edit" onClick={() => openEditModal(p)}>
-                                {t("common.edit")}
-                            </button>
-                            <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
-                                {t("common.delete")}
-                            </button>
-                        </td>
-                    </tr>
-                ))}
+                            <td>
+                                <button className="btn-edit" onClick={() => openEditModal(p)}>
+                                    {t("common.edit")}
+                                </button>
+                                <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
+                                    {t("common.delete")}
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
                 </tbody>
             </table>
 
