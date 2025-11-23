@@ -25,6 +25,7 @@ class SupplierOrder {
     required this.status,
     required this.items,
     this.consumerId,
+    this.consumerName,
     this.supplierId,
     this.deliveryAddress,
     this.totalAmount,
@@ -38,9 +39,16 @@ class SupplierOrder {
         .whereType<Map<String, dynamic>>()
         .toList();
 
+    final consumerDetails = json['consumer_details'];
+    String? consumerName;
+    if (consumerDetails is Map<String, dynamic>) {
+      consumerName = consumerDetails['business_name'] as String?;
+    }
+
     return SupplierOrder(
       id: json['id'] as int,
       consumerId: _toInt(json['consumer']),
+      consumerName: consumerName,
       supplierId: _toInt(json['supplier']),
       status: (json['status'] as String?) ?? 'pending',
       deliveryAddress: json['delivery_address'] as String?,
@@ -54,6 +62,7 @@ class SupplierOrder {
 
   final int id;
   final int? consumerId;
+  final String? consumerName;
   final int? supplierId;
   final String status;
   final String? deliveryAddress;

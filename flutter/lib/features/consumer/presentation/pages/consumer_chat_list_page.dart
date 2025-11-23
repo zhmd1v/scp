@@ -37,14 +37,11 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
     final conversations = await _api.fetchConversations(token: token);
     final links = await _api.fetchLinks(token: token);
     
-    // Filter out empty chats and duplicates
+    // Filter out duplicates if any (keep most recent)
     final uniqueConversations = <int, ConsumerConversation>{};
     for (final conv in conversations) {
-      if (conv.lastMessage != null && conv.lastMessage!.isNotEmpty) {
-        // Keep the most recent one if duplicates exist (though backend should handle this)
-        if (!uniqueConversations.containsKey(conv.supplierId)) {
-          uniqueConversations[conv.supplierId] = conv;
-        }
+      if (!uniqueConversations.containsKey(conv.supplierId)) {
+        uniqueConversations[conv.supplierId] = conv;
       }
     }
 

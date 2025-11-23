@@ -193,8 +193,8 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final consumerLabel =
-        order.consumerId != null ? 'Consumer #${order.consumerId}' : 'Consumer';
+    final consumerLabel = order.consumerName ??
+        (order.consumerId != null ? 'Consumer #${order.consumerId}' : 'Consumer');
     final total = order.totalAmount ?? 0;
     final createdAt = order.createdAt;
 

@@ -35,13 +35,22 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
     _loadMessages();
   }
 
-  Future<void> _loadMessages() async {
+  Future<void> _loadMessages({bool showLoading = true}) async {
     if (widget.conversationId == null) {
-      setState(() {
-        _isLoading = false;
-        _messages = [];
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _messages = [];
+        });
+      }
       return;
+    }
+
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     }
 
     try {
@@ -55,15 +64,19 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
         currentUserId: userId,
       );
 
-      setState(() {
-        _messages = messages;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages = messages;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -82,6 +95,11 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _loadMessages(showLoading: true),
+            tooltip: 'Refresh',
+          ),
+          IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
             onPressed: _openCatalogQuickPick,
             tooltip: 'Open catalog',
@@ -91,80 +109,114 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Text(
-                            'Error: $_error',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      )
-                    : _messages.isEmpty
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'No messages yet. Start the conversation!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 16, color: Colors.grey),
+            child: RefreshIndicator(
+              onRefresh: () => _loadMessages(showLoading: false),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? LayoutBuilder(
+                          builder: (context, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
                               ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _messages.length,
-                            itemBuilder: (_, index) {
-                              final message = _messages[index];
-                              final isMe = message.isFromMe;
-                              return Align(
-                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  padding: const EdgeInsets.all(12),
-                                  constraints: BoxConstraints(
-                                      maxWidth: MediaQuery.of(context).size.width * 0.7),
-                                  decoration: BoxDecoration(
-                                    color: isMe
-                                        ? const Color(0xFF21545F)
-                                        : const Color(0xFFE3EDF4),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
                                   child: Column(
-                                    crossAxisAlignment: isMe
-                                        ? CrossAxisAlignment.end
-                                        : CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      if (message.attachmentUrl != null) ...[
-                                        _buildAttachmentWidget(message.attachmentUrl!, isMe),
-                                        if (message.text.isNotEmpty) const SizedBox(height: 8),
-                                      ],
-                                      if (message.text.isNotEmpty)
-                                        Text(
-                                          message.text,
-                                          style: TextStyle(
-                                            color:
-                                                isMe ? Colors.white : const Color(0xFF1E3E46),
-                                          ),
-                                        ),
-                                      const SizedBox(height: 4),
                                       Text(
-                                        _formatTimestamp(message.createdAt),
-                                        style: TextStyle(
-                                          color: isMe ? Colors.white70 : Colors.black45,
-                                          fontSize: 10,
-                                        ),
+                                        'Error: $_error',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(color: Colors.red),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: () => _loadMessages(showLoading: true),
+                                        child: const Text('Retry'),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
+                        )
+                      : _messages.isEmpty
+                          ? LayoutBuilder(
+                              builder: (context, constraints) => SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight,
+                                  ),
+                                  child: const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32),
+                                      child: Text(
+                                        'No messages yet. Start the conversation!',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _messages.length,
+                              itemBuilder: (_, index) {
+                                final message = _messages[index];
+                                final isMe = message.isFromMe;
+                                return Align(
+                                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 6),
+                                    padding: const EdgeInsets.all(12),
+                                    constraints: BoxConstraints(
+                                        maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? const Color(0xFF21545F)
+                                          : const Color(0xFFE3EDF4),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: isMe
+                                          ? CrossAxisAlignment.end
+                                          : CrossAxisAlignment.start,
+                                      children: [
+                                        if (message.attachmentUrl != null) ...[
+                                          _buildAttachmentWidget(message.attachmentUrl!, isMe),
+                                          if (message.text.isNotEmpty) const SizedBox(height: 8),
+                                        ],
+                                        if (message.text.isNotEmpty)
+                                          Text(
+                                            message.text,
+                                            style: TextStyle(
+                                              color:
+                                                  isMe ? Colors.white : const Color(0xFF1E3E46),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatTimestamp(message.createdAt),
+                                          style: TextStyle(
+                                            color: isMe ? Colors.white70 : Colors.black45,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+            ),
           ),
           _MessageInput(
             controller: _controller,

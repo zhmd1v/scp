@@ -5,7 +5,7 @@ from rest_framework import serializers
 from .models import Order, OrderItem, OrderStatusHistory, OrderStatusHistory
 from catalog.models import Product
 from catalog.serializers import ProductSerializer
-from accounts.serializers import SupplierProfileSerializer
+from accounts.serializers import SupplierProfileSerializer, ConsumerProfileSerializer
 from accounts.models import SupplierProfile
 
 
@@ -79,8 +79,11 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_amount',
             'notes',
             'items',
+            'consumer_details',
         ]
         read_only_fields = ['status', 'created_at', 'updated_at', 'total_amount', 'consumer']
+
+    consumer_details = ConsumerProfileSerializer(source='consumer', read_only=True)
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])

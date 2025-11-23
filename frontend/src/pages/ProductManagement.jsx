@@ -196,7 +196,7 @@ export default function ProductManagement() {
 
         try {
             await api.post(
-                `/catalog/categories/create/`,
+                `/catalog/categories/`,
                 {
                     name: newCategoryName,
                     description: newCategoryDesc,
@@ -234,54 +234,54 @@ export default function ProductManagement() {
 
             <table className="products-table">
                 <thead>
-                <tr>
-                    <th>{t("products.image")}</th>
-                    <th>{t("products.name")}</th>
-                    <th>{t("products.unit")}</th>
-                    <th>{t("products.price")}</th>
-                    <th>{t("products.stock")}</th>
-                    <th>{t("products.category")}</th>
-                    <th>{t("products.available")}</th>
-                    <th>{t("common.actions")}</th>
-                </tr>
+                    <tr>
+                        <th>{t("products.image")}</th>
+                        <th>{t("products.name")}</th>
+                        <th>{t("products.unit")}</th>
+                        <th>{t("products.price")}</th>
+                        <th>{t("products.stock")}</th>
+                        <th>{t("products.category")}</th>
+                        <th>{t("products.available")}</th>
+                        <th>{t("common.actions")}</th>
+                    </tr>
                 </thead>
 
                 <tbody>
-                {products.map((p) => (
-                    <tr key={p.id}>
-                        <td>
-                            {p.imagePreview ? (
-                                <img src={p.imagePreview} className="thumb" alt="" />
-                            ) : (
-                                <div className="thumb placeholder">{t("products.no_image")}</div>
-                            )}
-                        </td>
+                    {products.map((p) => (
+                        <tr key={p.id}>
+                            <td>
+                                {p.imagePreview ? (
+                                    <img src={p.imagePreview} className="thumb" alt="" />
+                                ) : (
+                                    <div className="thumb placeholder">{t("products.no_image")}</div>
+                                )}
+                            </td>
 
-                        <td>{p.name}</td>
-                        <td>{p.unit}</td>
-                        <td>{p.unit_price}</td>
-                        <td>{p.stock_quantity}</td>
-                        <td>{p.category_obj?.name}</td>
+                            <td>{p.name}</td>
+                            <td>{p.unit}</td>
+                            <td>{p.unit_price}</td>
+                            <td>{p.stock_quantity}</td>
+                            <td>{p.category_obj?.name}</td>
 
-                        <td>
-                            <button
-                                className={p.is_available ? "tag green" : "tag red"}
-                                onClick={() => toggleAvailability(p)}
-                            >
-                                {p.is_available ? t("common.yes") : t("common.no")}
-                            </button>
-                        </td>
+                            <td>
+                                <button
+                                    className={p.is_available ? "tag green" : "tag red"}
+                                    onClick={() => toggleAvailability(p)}
+                                >
+                                    {p.is_available ? t("common.yes") : t("common.no")}
+                                </button>
+                            </td>
 
-                        <td>
-                            <button className="btn-edit" onClick={() => openEditModal(p)}>
-                                {t("common.edit")}
-                            </button>
-                            <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
-                                {t("common.delete")}
-                            </button>
-                        </td>
-                    </tr>
-                ))}
+                            <td>
+                                <button className="btn-edit" onClick={() => openEditModal(p)}>
+                                    {t("common.edit")}
+                                </button>
+                                <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
+                                    {t("common.delete")}
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
                 </tbody>
             </table>
 

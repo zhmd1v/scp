@@ -6,8 +6,12 @@ from .views import (
     ProductCreateView,
     ProductUpdateView,
     ProductDeleteView,
+    CategoryViewSet,
 )
+from rest_framework.routers import DefaultRouter
 
+router = DefaultRouter()
+router.register(r'categories', CategoryViewSet, basename='category')
 
 urlpatterns = [
     path(
@@ -29,4 +33,4 @@ urlpatterns = [
     path('products/create/', ProductCreateView.as_view(), name='product-create'),
     path('products/<int:pk>/update/', ProductUpdateView.as_view(), name='product-update'),
     path('products/<int:pk>/delete/', ProductDeleteView.as_view(), name='product-delete'),
-]
+] + router.urls
