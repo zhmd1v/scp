@@ -7,6 +7,7 @@ from .views import (
     ApproveLinkView,
     RejectLinkView,
     BlockLinkView,
+    CancelLinkRequestView,
     ConsumerRegisterView,
     ConsumerProfileUpdateView,
     UserProfileUpdateView,
@@ -23,6 +24,7 @@ urlpatterns = [
     path('links/<int:pk>/approve/', ApproveLinkView.as_view(), name='link-approve'),
     path('links/<int:pk>/reject/', RejectLinkView.as_view(), name='link-reject'),
     path('links/<int:pk>/block/', BlockLinkView.as_view(), name='link-block'),
+    path('links/<int:pk>/cancel/', CancelLinkRequestView.as_view(), name='link-cancel'),
     path('register/', ConsumerRegisterView.as_view(), name='consumer-register'),
     
     # profile update

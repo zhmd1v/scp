@@ -70,7 +70,7 @@ class _ConsumerSupplierSearchPageV2State
     print("[DEMO] _availableSuppliers2: $linkedSupplierIds");
     return _allSuppliers.where((supplier) {
       print("[DEMO] Checking supplier: ${supplier.companyName} ${!supplier.isVerified}, ${linkedSupplierIds.contains(supplier.id)}");
-      if (!supplier.isVerified) return false;
+      // if (!supplier.isVerified) return false;
       if (linkedSupplierIds.contains(supplier.id)) return false;
       
       if (_searchQuery.isEmpty) return true;
@@ -198,7 +198,10 @@ class _ConsumerSupplierSearchPageV2State
         final link = links[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _LinkCard(link: link),
+          child: _LinkCard(
+            link: link,
+            onCancel: () => _cancelLinkRequest(link),
+          ),
         );
       },
     );
@@ -245,6 +248,51 @@ class _ConsumerSupplierSearchPageV2State
         setState(() {
           _selectedSection = 1; // Switch to Pending Requests tab
         });
+        await _refresh();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _cancelLinkRequest(ConsumerSupplierLink link) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Request'),
+        content: Text(
+          'Are you sure you want to cancel the request to ${link.supplier.companyName}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final auth = context.read<AuthProvider>();
+      final token = auth.token;
+      if (token == null) return;
+
+      await _api.cancelLinkRequest(token: token, linkId: link.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request cancelled')),
+        );
         await _refresh();
       }
     } catch (e) {
@@ -449,9 +497,13 @@ class _SupplierCard extends StatelessWidget {
 }
 
 class _LinkCard extends StatelessWidget {
-  const _LinkCard({required this.link});
+  const _LinkCard({
+    required this.link,
+    required this.onCancel,
+  });
 
   final ConsumerSupplierLink link;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -545,6 +597,22 @@ class _LinkCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+            if (link.isPending) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Cancel Request'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ],

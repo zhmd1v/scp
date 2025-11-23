@@ -79,6 +79,7 @@ class ConsumerSupplierLinkSerializer(serializers.ModelSerializer):
     Используем для списка и создания запросов.
     """
     supplier = SupplierProfileSerializer(read_only=True)
+    consumer = ConsumerProfileSerializer(read_only=True)
     supplier_id = serializers.PrimaryKeyRelatedField(
         queryset=SupplierProfile.objects.all(),
         source='supplier',

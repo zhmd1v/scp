@@ -44,7 +44,7 @@ class SupplierListView(generics.ListAPIView):
     Список всех верифицированных поставщиков.
     Для теста: ты будешь создавать SupplierProfile через админку.
     """
-    queryset = SupplierProfile.objects.filter(is_verified=True)
+    queryset = SupplierProfile.objects.all().order_by('-is_verified', 'company_name')
     serializer_class = SupplierProfileSerializer
     permission_classes = [permissions.AllowAny]  # пока открыто всем
 
@@ -198,6 +198,36 @@ class BlockLinkView(BaseLinkActionView):
     Поставщик блокирует потребителя (например, после инцидентов).
     """
     new_status = 'blocked'
+
+
+class CancelLinkRequestView(APIView):
+    """
+    Потребитель отменяет (удаляет) свой запрос на линк.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            link = ConsumerSupplierLink.objects.select_related('consumer').get(pk=pk)
+        except ConsumerSupplierLink.DoesNotExist:
+            return Response({"detail": "Link not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        
+        # Проверяем, что это consumer и это его линк
+        try:
+            consumer_profile = ConsumerProfile.objects.get(user=user)
+        except ConsumerProfile.DoesNotExist:
+            return Response({"detail": "Only consumers can cancel requests."}, status=status.HTTP_403_FORBIDDEN)
+
+        if link.consumer != consumer_profile:
+            return Response({"detail": "This is not your request."}, status=status.HTTP_403_FORBIDDEN)
+
+        if link.status != 'pending':
+            return Response({"detail": "Can only cancel pending requests."}, status=status.HTTP_400_BAD_REQUEST)
+
+        link.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConsumerRegisterView(generics.CreateAPIView):

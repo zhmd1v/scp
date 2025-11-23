@@ -218,6 +218,7 @@ class SupplierConversation {
     required this.conversationType,
     this.supplierId,
     this.consumerId,
+    this.consumerName,
     this.orderId,
     this.updatedAt,
     this.createdAt,
@@ -228,6 +229,7 @@ class SupplierConversation {
       id: json['id'] as int,
       supplierId: _toInt(json['supplier']),
       consumerId: _toInt(json['consumer']),
+      consumerName: json['consumer_name'] as String?,
       orderId: _toInt(json['order']),
       conversationType: json['conversation_type'] as String? ?? 'supplier_consumer',
       createdAt: _toDateTime(json['created_at']),
@@ -238,12 +240,16 @@ class SupplierConversation {
   final int id;
   final int? supplierId;
   final int? consumerId;
+  final String? consumerName;
   final int? orderId;
   final String conversationType;
   final DateTime? updatedAt;
   final DateTime? createdAt;
 
   String get displayName {
+    if (consumerName != null) {
+      return consumerName!;
+    }
     if (consumerId != null) {
       return 'Consumer #$consumerId';
     }
@@ -365,10 +371,14 @@ class SupplierLink {
 
     if (consumerData is Map<String, dynamic>) {
       consumerId = _toInt(consumerData['id']);
-      // Try to get business_name from consumer_profile
-      final profile = consumerData['consumer_profile'];
-      if (profile is Map<String, dynamic>) {
-        consumerName = profile['business_name'] as String?;
+      // Try to get business_name directly (if it's a profile) or from consumer_profile (if it's a user)
+      consumerName = consumerData['business_name'] as String?;
+      
+      if (consumerName == null) {
+        final profile = consumerData['consumer_profile'];
+        if (profile is Map<String, dynamic>) {
+          consumerName = profile['business_name'] as String?;
+        }
       }
       consumerName ??= consumerData['username'] as String?;
     } else {

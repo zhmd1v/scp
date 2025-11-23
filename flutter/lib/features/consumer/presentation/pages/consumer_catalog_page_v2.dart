@@ -79,11 +79,6 @@ class _ConsumerCatalogPageV2State extends State<ConsumerCatalogPageV2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Browse catalogs from your linked suppliers.',
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
-                ),
-                const SizedBox(height: 18),
                 TextField(
                   controller: _searchController,
                   onChanged: (value) => setState(() => _searchQuery = value),

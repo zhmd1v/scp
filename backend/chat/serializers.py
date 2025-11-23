@@ -4,6 +4,7 @@ from .models import Conversation, Message
 
 class ConversationSerializer(serializers.ModelSerializer):
     supplier_name = serializers.SerializerMethodField()
+    consumer_name = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     last_message_at = serializers.DateTimeField(source='updated_at', read_only=True)
     unread_count = serializers.SerializerMethodField()
@@ -15,6 +16,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             'supplier',
             'supplier_name',
             'consumer',
+            'consumer_name',
             'order',
             'conversation_type',
             'created_by',
@@ -24,10 +26,15 @@ class ConversationSerializer(serializers.ModelSerializer):
             'last_message_at',
             'unread_count',
         ]
-        read_only_fields = ['created_by', 'created_at', 'updated_at', 'supplier_name', 'last_message', 'last_message_at', 'unread_count']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'supplier_name', 'consumer_name', 'last_message', 'last_message_at', 'unread_count']
 
     def get_supplier_name(self, obj):
         return obj.supplier.company_name if obj.supplier else None
+
+    def get_consumer_name(self, obj):
+        if obj.consumer:
+            return obj.consumer.business_name
+        return None
 
     def get_last_message(self, obj):
         last_msg = obj.messages.order_by('-sent_at').first()

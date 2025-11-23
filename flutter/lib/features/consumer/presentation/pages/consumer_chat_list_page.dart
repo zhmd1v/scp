@@ -205,7 +205,7 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${link.supplier.city ?? "Supplier"} • No active chat',
+                      '${link.supplier.city ?? "Supplier"} ',
                       style: const TextStyle(fontSize: 13, color: Colors.black54),
                     ),
                   ],
@@ -235,11 +235,23 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
   }
 
   void _openChatWithSupplier(BuildContext context, ConsumerSupplier supplier) {
+    // Check if we already have a conversation with this supplier
+    int? conversationId;
+    try {
+      final existing = _conversations.firstWhere(
+        (c) => c.supplierId == supplier.id,
+      );
+      conversationId = existing.id;
+    } catch (_) {
+      // No existing conversation found
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConsumerChatPage(
           supplier: supplier.companyName,
           supplierId: supplier.id,
+          conversationId: conversationId,
         ),
       ),
     );

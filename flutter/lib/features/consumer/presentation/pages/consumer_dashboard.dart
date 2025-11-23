@@ -71,11 +71,6 @@ class _ConsumerDashboardState extends State<ConsumerDashboard> {
                 color: Color(0xFF1E3E46),
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Track supplier links, deliveries, and open requests.',
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-            ),
             const SizedBox(height: 20),
             const _SectionTitle(label: 'Link status'),
             const SizedBox(height: 12),

@@ -66,6 +66,23 @@ class ConsumerApiService extends ApiService {
     return ConsumerSupplierLink.fromJson(data);
   }
 
+  /// Cancel a pending link request
+  Future<void> cancelLinkRequest({
+    required String token,
+    required int linkId,
+  }) async {
+    final response = await post(
+      '/api/accounts/links/$linkId/cancel/',
+      token: token,
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to cancel link request.',
+      );
+    }
+  }
+
   /// Fetch products for a specific supplier
   Future<List<ConsumerProduct>> fetchSupplierProducts({
     required String token,
