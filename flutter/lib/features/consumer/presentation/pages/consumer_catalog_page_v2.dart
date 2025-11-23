@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../config/api_config.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../data/consumer_api_service.dart';
 import '../../data/consumer_models.dart';
@@ -700,6 +701,21 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Build full image URL if imageUrl is provided
+    String? fullImageUrl;
+    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+      // If the URL is already absolute, use it as is
+      if (product.imageUrl!.startsWith('http')) {
+        fullImageUrl = product.imageUrl;
+      } else {
+        // Otherwise, prepend the backend base URL
+        const baseUrl = kBackendBaseUrl;
+        final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+        final normalizedPath = product.imageUrl!.startsWith('/') ? product.imageUrl : '/${product.imageUrl}';
+        fullImageUrl = '$normalizedBase$normalizedPath';
+      }
+    }
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -712,7 +728,48 @@ class _ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Product Image
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: fullImageUrl != null
+                      ? Image.network(
+                          fullImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey.shade400,
+                              size: 40,
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2,
+                              ),
+                            );
+                          },
+                        )
+                      : Icon(
+                          Icons.inventory_2,
+                          color: Colors.grey.shade400,
+                          size: 40,
+                        ),
+                ),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -732,11 +789,14 @@ class _ProductCard extends StatelessWidget {
                             fontSize: 14,
                             color: Colors.grey.shade600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

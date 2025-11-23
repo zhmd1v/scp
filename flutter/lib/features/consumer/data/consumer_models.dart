@@ -131,6 +131,7 @@ class ConsumerProduct {
     this.isAvailable = true,
     this.minOrderQuantity,
     this.stockLevel,
+    this.imageUrl,
   });
 
   factory ConsumerProduct.fromJson(Map<String, dynamic> json) {
@@ -158,6 +159,7 @@ class ConsumerProduct {
       isAvailable: json['is_available'] as bool? ?? true,
       minOrderQuantity: _toDouble(json['minimum_order_quantity']),
       stockLevel: _toInt(json['stock_quantity']),
+      imageUrl: json['image'] as String?,
     );
   }
 
@@ -173,6 +175,7 @@ class ConsumerProduct {
   final bool isAvailable;
   final double? minOrderQuantity;
   final int? stockLevel;
+  final String? imageUrl;
 
   Map<String, dynamic> toJson() {
     return {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../config/api_config.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../data/supplier_api_service.dart';
 import '../../data/supplier_models.dart';
@@ -185,18 +186,8 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFA7E1D5),
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                        child: const Icon(
-                                          Icons.inventory_2_rounded,
-                                          color: Color(0xFF21545F),
-                                        ),
-                                      ),
+                                      // Product Image
+                                      _buildProductImage(product),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Column(
@@ -366,6 +357,57 @@ class _SupplierCatalogPageState extends State<SupplierCatalogPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProductImage(SupplierProduct product) {
+    // Build full image URL if imageUrl is provided
+    String? fullImageUrl;
+    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+      // If the URL is already absolute, use it as is
+      if (product.imageUrl!.startsWith('http')) {
+        fullImageUrl = product.imageUrl;
+      } else {
+        // Otherwise, prepend the backend base URL
+        const baseUrl = kBackendBaseUrl;
+        final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+        final normalizedPath = product.imageUrl!.startsWith('/') ? product.imageUrl : '/${product.imageUrl}';
+        fullImageUrl = '$normalizedBase$normalizedPath';
+      }
+    }
+
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: const Color(0xFFA7E1D5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: fullImageUrl != null
+          ? Image.network(
+              fullImageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.inventory_2_rounded,
+                  color: Color(0xFF21545F),
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF21545F)),
+                  ),
+                );
+              },
+            )
+          : const Icon(
+              Icons.inventory_2_rounded,
+              color: Color(0xFF21545F),
+            ),
     );
   }
 }

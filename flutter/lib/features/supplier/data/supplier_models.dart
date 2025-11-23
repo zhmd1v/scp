@@ -317,6 +317,7 @@ class SupplierProduct {
     this.stockQuantity,
     this.isAvailable,
     this.categoryLabel = 'General',
+    this.imageUrl,
   });
 
   factory SupplierProduct.fromJson(Map<String, dynamic> json) {
@@ -337,6 +338,7 @@ class SupplierProduct {
       stockQuantity: _toDouble(json['stock_quantity']),
       isAvailable: json['is_available'] as bool?,
       categoryLabel: categoryLabel ?? 'General',
+      imageUrl: json['image'] as String?,
     );
   }
 
@@ -348,6 +350,7 @@ class SupplierProduct {
   final double? stockQuantity;
   final bool? isAvailable;
   final String categoryLabel;
+  final String? imageUrl;
 
   bool get isOutOfStock => (stockQuantity ?? 0) <= 0;
   bool get isLowStock => (stockQuantity ?? 0) > 0 && (stockQuantity ?? 0) < 5;
