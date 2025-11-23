@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import Order, OrderItem, OrderStatusHistory
-from .serializers import OrderSerializer
+from .serializers import OrderSerializer, OrderStatusHistorySerializer
 
 from accounts.models import (
     ConsumerProfile,
@@ -14,6 +14,35 @@ from accounts.models import (
 )
 from catalog.models import Product
 
+
+
+
+class OrderStatusHistoryListView(generics.ListAPIView):
+    serializer_class = OrderStatusHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        order_id = self.kwargs.get('order_id')
+        user = self.request.user
+        # Only allow access if user can see the order
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return OrderStatusHistory.objects.none()
+
+        # superuser can see all
+        if user.is_superuser:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        # supplier staff for this order
+        if hasattr(user, 'supplier_staff') and order.supplier == user.supplier_staff.supplier:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        # consumer who owns the order
+        if hasattr(user, 'consumer_profile') and order.consumer == user.consumer_profile:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        return OrderStatusHistory.objects.none()
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
@@ -334,3 +363,56 @@ class ConsumerCancelOrderView(BaseOrderStatusView):
             status=status.HTTP_200_OK
         )
 
+
+class ConsumerCompleteOrderView(BaseOrderStatusView):
+    """
+    Завершение заказа потребителем.
+    Можно завершить только свой заказ и только если он 'confirmed' или 'in_delivery'.
+    """
+    new_status = 'completed'
+
+    def handle_order(self, request, order):
+        user = request.user
+
+        # ищем consumer-профиль
+        try:
+            consumer_profile = ConsumerProfile.objects.get(user=user)
+        except ConsumerProfile.DoesNotExist:
+            return Response(
+                {"detail": "Только потребитель может завершать заказ."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if order.consumer != consumer_profile and not user.is_superuser:
+            return Response(
+                {"detail": "Вы не можете завершать чужой заказ."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        allowed_statuses = ['confirmed', 'in_delivery']
+        if order.status not in allowed_statuses:
+            return Response(
+                {"detail": f"Нельзя завершить заказ в статусе '{order.status}'. Допустимые статусы: {allowed_statuses}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_status = order.status
+        order.status = self.new_status
+        order.save()
+
+        OrderStatusHistory.objects.create(
+            order=order,
+            old_status=old_status,
+            new_status=order.status,
+            changed_by=user,
+            comment='Order completed by consumer via API',
+        )
+
+        return Response(
+            {
+                "id": order.id,
+                "old_status": old_status,
+                "new_status": order.status,
+            },
+            status=status.HTTP_200_OK
+        )

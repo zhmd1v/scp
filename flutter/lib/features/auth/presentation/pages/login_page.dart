@@ -121,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          role == 'supplier' ? 'Sign In' : 'Consumer Sign In',
+                          role == 'supplier' ? 'Supplier Sign In' : 'Consumer Sign In',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleLarge?.copyWith(
                             color: const Color(0xFF21545F),

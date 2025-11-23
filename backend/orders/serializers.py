@@ -2,11 +2,22 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Order, OrderItem, OrderStatusHistory
+from .models import Order, OrderItem, OrderStatusHistory, OrderStatusHistory
 from catalog.models import Product
 from catalog.serializers import ProductSerializer
 from accounts.serializers import SupplierProfileSerializer
 from accounts.models import SupplierProfile
+
+
+
+class OrderStatusHistorySerializer(serializers.ModelSerializer):
+    changed_by = serializers.StringRelatedField()
+
+    class Meta:
+        model = OrderStatusHistory
+        fields = [
+            'id', 'order', 'old_status', 'new_status', 'changed_at', 'changed_by', 'comment'
+        ]
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

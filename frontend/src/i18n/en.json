@@ -1,0 +1,463 @@
+{
+  "homeTitle": "Supplier Consumer Platform",
+  "homeWelcome": "Welcome to the system.",
+  "profile.title": "Profile & Settings",
+  "profile.subtitle": "Manage your supplier information",
+
+  "profile.section.supplierProfile": "Supplier Profile",
+
+  "profile.fields.supplierName": "Supplier Name",
+  "profile.fields.legalName": "Legal Entity Name",
+  "profile.fields.address": "Physical Address",
+  "profile.fields.phone": "Contact Phone",
+  "profile.fields.email": "Contact Email",
+  "profile.fields.logo": "Company Logo",
+
+  "profile.logoPreview": "Logo Preview",
+
+  "profile.actions.edit": "Edit Profile",
+  "profile.actions.save": "Save Changes",
+  "profile.actions.cancel": "Cancel",
+
+  "profile.saved": "Profile updated successfully",
+
+  "profile": {
+    "section": {
+      "supplierProfile": "Supplier Profile",
+      "settings": "Account & System Settings"
+    },
+    "settings": {
+      "language": "Language",
+      "currency": "Currency",
+      "timezone": "Timezone",
+      "dateFormat": "Date Format",
+      "delivery": "Delivery Option",
+      "pickup": "Pickup Option",
+      "enableDelivery": "Enable Delivery",
+      "enablePickup": "Enable Pickup",
+      "leadTime": "Lead Time",
+      "leadTimePlaceholder": "e.g. 1 hour"
+    }
+  },
+
+
+  "chat": {
+    "title": "Chats / Inbox",
+    "filters": {
+      "all": "All linked",
+      "escalated": "Escalated",
+      "recent": "Recent"
+    },
+    "empty": "No conversations.",
+    "escalatedTag": "Escalated",
+    "actions": {
+      "markEscalated": "Mark as Escalated"
+    },
+    "simulatedIncoming": "New message (simulated)",
+    "escalatedMockMessage": "Conversation escalated. Managers can now reply."
+  },
+
+  "chatThread": {
+    "back": "Back",
+    "escalatedToManager": "Escalated to Manager",
+    "markEscalated": "Mark Escalated",
+    "markRead": "Mark Read",
+    "productLinkLabel": "Product link:",
+    "receiptLabel": "Receipt:",
+    "receiptOrder": "Order",
+    "receiptTotal": "Total",
+    "notEscalatedNotice": "This conversation has not been escalated. Managers may reply only after escalation.",
+    "placeholderMessage": "Write a message...",
+    "send": "Send",
+    "insertProductLink": "Insert Product Link",
+    "sendReceipt": "Send Receipt",
+    "attachment": "Attachment:"
+  },
+
+  "topbar": {
+    "title": "Supplier Platform",
+    "notifications": "Notifications",
+    "noNotifications": "No new notifications"
+  },
+  "notifications": {
+    "orderPending": "New order #1053 awaiting approval",
+    "complaintEscalated": "Complaint escalated to you",
+    "newLinkRequest": "New consumer link request"
+  },
+  "authLogin": {
+    "login": "Login",
+    "logout": "Logout"
+  },
+
+  "layout": {
+    "menu": "Menu"
+  },
+
+  "sidebar": {
+    "home": "Home",
+    "complaints": "Complaints",
+    "ownerDashboard": "Owner Dashboard",
+    "managerDashboard": "Manager Dashboard",
+    "staffManagement": "Staff Management",
+    "productManagement": "Product Management",
+    "chats": "Chats",
+    "profileSettings": "Profile & Settings",
+    "linkManagement": "Link Management",
+    "orderManagement": "Order Management"
+  },
+
+  "links": {
+    "title": "Link Management",
+    "pending": "Pending Requests",
+    "noPending": "No pending requests",
+    "consumer": "Consumer",
+    "requestedAt": "Requested At",
+    "actions": "Actions",
+    "approve": "Approve",
+    "deny": "Deny",
+    "block": "Block",
+    "linked": "Linked Consumers",
+    "noLinked": "No linked consumers",
+    "linkedAt": "Linked At",
+    "unlink": "Remove / Unlink",
+    "alertBlocked": "Consumer blocked."
+  },
+
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "showPassword": "Show password",
+    "testRole": "Login as (TEST ONLY):",
+    "role": {
+      "owner": "Owner",
+      "manager": "Manager",
+      "sales": "Sales Representative"
+    },
+    "button": "Login",
+    "forgot": "Forgot Password?"
+  },
+
+
+  "dashboard": {
+    "ordersToday": "Orders Today",
+    "activeConsumers": "Active Consumers",
+    "inDelivery": "In Delivery",
+    "recentOrders": "Recent Orders",
+
+    "id": "ID",
+    "createdAt": "Created At",
+    "requestedDelivery": "Requested Delivery",
+    "noOrders": "No orders found.",
+    "unknownSupplier": "Unknown Supplier",
+    "itemsLabel": "items",
+    "loading": "Loading dashboard...",
+    "orders_today": "Orders Today",
+    "active_consumers": "Active Consumers",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "in_delivery": "In Delivery",
+    "recent_orders": "Recent Orders",
+    "consumer": "Consumer",
+    "supplier": "Supplier",
+    "created_at": "Created At",
+    "requested_delivery": "Requested Delivery",
+    "items": "Items",
+    "total": "Total Amount",
+    "status": "Status",
+    "no_orders": "No orders found.",
+    "unknown_supplier": "Unknown Supplier",
+    "items_suffix": "items"
+  },
+
+
+  "manager": {
+    "title": "Manager Dashboard",
+    "stats": {
+      "pendingOrders": "Pending Orders",
+      "openComplaints": "Open Complaints",
+      "activeSalesmen": "Salesmen Active"
+    },
+    "pendingOrders": {
+      "title": "Pending Orders",
+      "orderId": "Order ID",
+      "consumer": "Consumer",
+      "salesman": "Salesman",
+      "date": "Date",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+
+    "buttons": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "resolve": "Resolve",
+      "escalate": "Escalate"
+    },
+    "actions": {
+      "accepted": "Accepted order",
+      "rejected": "Rejected order",
+      "resolved": "Resolved complaint",
+      "escalated": "Escalated complaint"
+    },
+    "status": {
+      "open": "Open",
+      "escalated": "Escalated"
+    }
+  },
+
+  "orders": {
+    "title": "Order Management",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "in_delivery": "In Delivery",
+    "delivered": "Delivered",
+    "canceled": "Canceled",
+
+    "id": "Order ID",
+    "consumer": "Consumer",
+    "supplier": "Supplier",
+    "created_at": "Created At",
+    "requested_delivery": "Requested Delivery",
+    "items": "Items",
+    "total": "Total Price",
+
+    "view": "View",
+    "details": "Order Details",
+    "products": "Products",
+
+    "accept": "Accept Order",
+    "reject": "Reject Order",
+    "mark_delivered": "Mark as Delivered",
+
+    "no_orders": "No orders available.",
+    "loading": "Loading orders...",
+    "unknown_consumer": "Unknown Consumer",
+    "unknown_supplier": "Unknown Supplier",
+
+    "orderStatus": {
+      "completed": "Completed",
+      "canceled": "Canceled",
+      "pending": "Pending"
+    },
+
+    "incoming": {
+      "title": "Incoming Orders",
+      "empty": "No orders.",
+      "id": "Order ID",
+      "consumer": "Consumer",
+      "items": "Items",
+      "total": "Total",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions"
+    },
+
+    "buttons": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "respond": "Respond",
+      "resolve": "Resolve"
+    },
+
+    "processed": "Processed",
+
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "escalated": "Escalated",
+      "resolved": "Resolved"
+    },
+
+    "confirm": {
+      "rejectOrder": "Reject this order?",
+      "resolveComplaint": "Mark complaint as resolved?"
+    }
+  },
+
+  "owner": {
+    "pendingOrders": "Pending Orders",
+    "ordersToday": "Orders Today",
+    "linkedConsumers": "Linked Consumers",
+    "noPendingOrders": "No pending orders",
+    "consumerLinkRequests": "Consumer Link Requests",
+    "noNewRequests": "No new requests",
+    "requested": "Requested",
+    "recentOrderActivity": "Recent Order Activity",
+    "complaintsIncidents": "Complaints & Incidents",
+    "date": "Date",
+    "order": "Order",
+    "severity": "Severity",
+    "status": "Status"
+  },
+
+
+    "accept": "Accept",
+    "reject": "Reject",
+    "approve": "Approve",
+    "deny": "Deny",
+
+  "statuses": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "delivered": "Delivered",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "open": "Open",
+    "in_progress": "In Progress"
+  },
+  "severity": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+
+  "productMgmt": {
+    "title": "Product Management",
+    "addProduct": "Add Product",
+    "editProduct": "Edit Product",
+    "photo": "Photo",
+    "name": "Name",
+    "price": "Price",
+    "discount": "Discount",
+    "unit": "Unit",
+    "category": "Category",
+    "stock": "Stock",
+    "leadTime": "Lead Time",
+    "available": "Available",
+    "enabled": "Enabled",
+    "actions": "Actions",
+    "noImage": "No image"
+  },
+
+  "form": {
+    "priceWithCurrency": "Price (₸)",
+    "discountPercent": "Discount (%)",
+    "stockQty": "Stock Quantity",
+    "unitPackaging": "Unit / Packaging",
+    "deliveryOptions": "Delivery Options",
+    "delivery": "Delivery",
+    "pickup": "Pickup",
+    "leadTimeValue": "Value",
+    "photo": "Photo"
+  },
+
+  "units": {
+    "minutes": "Minutes",
+    "hours": "Hours",
+    "days": "Days"
+  },
+
+  "tags": {
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+
+  "actions": {
+    "add": "Add",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+
+  "auth": {
+    "resetPassword": "Reset Password",
+    "resetPasswordDescription": "Please enter your email to reset your password.",
+    "email": "Email",
+    "sendResetEmail": "Send Reset Email",
+    "resetEmailSent": "Password reset instructions sent to:"
+  },
+
+  "staff": {
+    "noStaff": "No staff members found",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "username": "Username",
+    "userType": "User Type",
+    "actions": "Actions",
+    "edit": "Edit",
+    "createStaff": "Create Staff",
+    "editStaff": "Edit Staff",
+    "createNewStaff": "Create New Staff",
+    "position": "Position",
+    "password": "Password",
+    "cancel": "Cancel",
+    "save": "Save",
+    "id": "ID",
+    "title": "Staff Management",
+    "loggedInAs": "Logged in as",
+    "addNew": "Add New Staff Member",
+    "fullName": "Full name",
+    "email": "Email",
+    "role": "Role",
+    "selectRole": "Select role",
+    "manager": "Manager",
+    "sales": "Sales Representative",
+    "addStaff": "Add Staff",
+    "staffMembers": "Staff Members",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete",
+    "confirmDelete": "Are you sure you want to DELETE this staff member? This action cannot be undone.",
+    "dangerZone": "Danger Zone",
+    "deactivateAccount": "Deactivate Account",
+    "deleteAccount": "Delete Account",
+    "deleteAccountTriggered": "Supplier account deletion request triggered.",
+    "managerReadOnly": "As a Manager, you have read-only access to staff data."
+  },
+
+  "products": {
+    "title": "Product Management",
+    "add": "Add Product",
+    "edit": "Edit Product",
+    "name": "Name",
+    "description": "Description",
+    "sku": "SKU",
+    "unit": "Unit",
+    "price": "Price",
+    "stock": "Stock Quantity",
+    "min_order": "Minimum Order Quantity",
+    "category": "Category",
+    "select_category": "Select a category",
+    "image": "Image",
+    "no_image": "No image",
+    "available": "Available",
+    "confirm_delete": "Are you sure you want to delete this product?"
+  },
+  "common": {
+    "loading": "Loading...",
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "view": "View"
+  },
+
+  "complaints": {
+    "title": "Complaints",
+    "open": "Open",
+    "in_progress": "In Progress",
+    "resolved": "Resolved",
+    "closed": "Closed",
+
+    "id": "ID",
+    "title_col": "Title",
+    "type": "Type",
+    "severity": "Severity",
+    "created": "Created At",
+    "status": "Status",
+    "none": "None",
+
+    "error_load": "Failed to load complaints"
+  }
+}

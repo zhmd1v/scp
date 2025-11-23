@@ -332,6 +332,7 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
   final ConsumerApiService _api = ConsumerApiService();
   final ComplaintApiService _complaintApi = ComplaintApiService();
   bool _isCancelling = false;
+  bool _isCompleting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -509,6 +510,30 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
                   label: const Text('Cancel Order'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            if (widget.order.isConfirmed || widget.order.isInDelivery)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isCompleting ? null : _completeOrder,
+                  icon: _isCompleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: const Text('Complete Order'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF21545F),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
@@ -762,6 +787,58 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
       },
     );
   }
+
+  Future<void> _completeOrder() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Complete Order'),
+        content: const Text('Are you sure you want to mark this order as completed?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Complete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isCompleting = true);
+
+    try {
+      final auth = context.read<AuthProvider>();
+      final token = auth.token;
+      if (token == null) {
+        throw const AuthException('You are not authenticated.');
+      }
+
+      await _api.completeOrder(token: token, orderId: widget.order.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order completed successfully.')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCompleting = false);
+      }
+    }
+  }
+
 }
 
 class _InfoSection extends StatelessWidget {

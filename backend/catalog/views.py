@@ -1,12 +1,15 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import CreateAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.permissions import BasePermission
 
-from .models import Product, Catalog
+from .models import Product, Catalog, Category
 from .serializers import (
     ProductSerializer,
     CatalogWithProductsSerializer,
+    CategorySerializer,
 )
 
 from accounts.models import (
@@ -140,3 +143,52 @@ class CatalogDetailView(generics.RetrieveAPIView):
         ).values_list('supplier_id', flat=True)
 
         return base_qs.filter(supplier_id__in=accepted_supplier_ids, is_active=True)
+
+
+class CategoryListView(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class IsSupplierManagerOrOwner(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (
+            request.user.user_type in ['supplier_manager', 'supplier_owner'] or request.user.is_superuser
+        )
+
+class ProductCreateView(CreateAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsSupplierManagerOrOwner]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        supplier_id = self.request.data.get('supplier')
+        # Only allow managers/owners to add products for their supplier
+        if not user.is_superuser and not SupplierStaff.objects.filter(user=user, supplier_id=supplier_id).exists():
+            raise PermissionDenied('You can only add products for your own supplier.')
+        serializer.save()
+
+class ProductUpdateView(UpdateAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsSupplierManagerOrOwner]
+    queryset = Product.objects.all()
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+        if not user.is_superuser and not SupplierStaff.objects.filter(user=user, supplier=obj.supplier).exists():
+            raise PermissionDenied('You can only edit products for your own supplier.')
+        return obj
+
+class ProductDeleteView(DestroyAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsSupplierManagerOrOwner]
+    queryset = Product.objects.all()
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+        if not user.is_superuser and not SupplierStaff.objects.filter(user=user, supplier=obj.supplier).exists():
+            raise PermissionDenied('You can only delete products for your own supplier.')
+        return obj

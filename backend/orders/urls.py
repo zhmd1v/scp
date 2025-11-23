@@ -7,6 +7,8 @@ from .views import (
     SupplierConfirmOrderView,
     SupplierRejectOrderView,
     ConsumerCancelOrderView,
+    ConsumerCompleteOrderView,
+    OrderStatusHistoryListView,
 )
 
 urlpatterns = [
@@ -19,5 +21,7 @@ urlpatterns = [
      # изменение статусов
     path('orders/<int:pk>/confirm/', SupplierConfirmOrderView.as_view(), name='order-confirm'),
     path('orders/<int:pk>/reject/', SupplierRejectOrderView.as_view(), name='order-reject'),
-    path('orders/<int:pk>/cancel/', ConsumerCancelOrderView.as_view(), name='order-cancel'),
+    path('orders/<int:pk>/cancel/', ConsumerCancelOrderView.as_view(), name='consumer-cancel-order'),
+    path('orders/<int:pk>/complete/', ConsumerCompleteOrderView.as_view(), name='consumer-complete-order'),
+    path('<int:order_id>/history/', OrderStatusHistoryListView.as_view(), name='order-status-history'),
 ]

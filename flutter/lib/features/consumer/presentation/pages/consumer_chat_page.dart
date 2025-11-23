@@ -149,7 +149,7 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
                                         _formatTimestamp(message.createdAt),
                                         style: TextStyle(
                                           color: isMe ? Colors.white70 : Colors.black45,
-                                          fontSize: 11,
+                                          fontSize: 10,
                                         ),
                                       ),
                                     ],

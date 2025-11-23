@@ -1,0 +1,157 @@
+.orders-page {
+    padding: 20px;
+}
+
+.subtitle {
+    margin-bottom: 10px;
+    color: #6b7280;
+}
+
+.orders-section {
+    background: white;
+    padding: 16px;
+    margin-top: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.status {
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: white;
+    text-transform: capitalize;
+}
+
+.status.pending { background: #f59e0b; }
+.status.accepted { background: #10b981; }
+.status.rejected { background: #ef4444; }
+.status.resolved { background: #3b82f6; }
+.status.escalated { background: #dc2626; }
+
+.btn-accept,
+.btn-reject,
+.btn-respond,
+.btn-resolve {
+    padding: 6px 10px;
+    margin-right: 6px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+}
+
+.btn-accept { background: #10b981; }
+.btn-reject { background: #ef4444; }
+.btn-respond { background: #3b82f6; }
+.btn-resolve { background: #4b5563; }
+
+.complaint-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.complaint-actions input {
+    flex: 1;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+.response-box {
+    margin-top: 8px;
+    background: #f3f4f6;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.orders-page {
+    padding: 20px;
+}
+
+/* Tabs */
+.order-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: #f2f2f2;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.tab:hover {
+    background: #e5e5e5;
+}
+
+.tab.active {
+    background: #007bff;
+    color: white;
+}
+
+/* Order list */
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Order card styling */
+.order-card {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 16px;
+    border-radius: 10px;
+    transition: 0.2s ease;
+    cursor: pointer;
+}
+
+.order-card:hover {
+    transform: translateY(-3px);
+    border-color: #007bff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.order-info p {
+    margin: 4px 0;
+}
+
+.order-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.accept-btn {
+    background: #28a745;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+.reject-btn {
+    background: #dc3545;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}

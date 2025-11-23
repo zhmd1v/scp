@@ -1,0 +1,468 @@
+{
+  "homeTitle": "Платформа Поставщик–Потребитель",
+  "homeWelcome": "Добро пожаловать в систему.",
+  "profile.title": "Профиль и настройки",
+  "profile.subtitle": "Управление информацией о поставщике",
+
+  "profile.section.supplierProfile": "Профиль поставщика",
+
+  "profile.fields.supplierName": "Название поставщика",
+  "profile.fields.legalName": "Юридическое название",
+  "profile.fields.address": "Физический адрес",
+  "profile.fields.phone": "Контактный телефон",
+  "profile.fields.email": "Контактный Email",
+  "profile.fields.logo": "Логотип компании",
+
+  "profile.logoPreview": "Предпросмотр логотипа",
+
+  "profile.actions.edit": "Редактировать",
+  "profile.actions.save": "Сохранить изменения",
+  "profile.actions.cancel": "Отменить",
+
+  "profile.saved": "Профиль успешно обновлён",
+
+  "profile": {
+    "section": {
+      "supplierProfile": "Профиль поставщика",
+      "settings": "Настройки аккаунта и системы"
+    },
+    "settings": {
+      "language": "Язык",
+      "currency": "Валюта",
+      "timezone": "Часовой пояс",
+      "dateFormat": "Формат даты",
+      "delivery": "Опция доставки",
+      "pickup": "Опция самовывоза",
+      "enableDelivery": "Включить доставку",
+      "enablePickup": "Включить самовывоз",
+      "leadTime": "Время подготовки",
+      "leadTimePlaceholder": "например, 1 час"
+    }
+
+
+  },
+
+  "chat": {
+    "title": "Чаты / Входящие",
+    "filters": {
+      "all": "Все связанные",
+      "escalated": "Эскалированные",
+      "recent": "Недавние"
+    },
+    "empty": "Нет диалогов.",
+    "escalatedTag": "Эскалировано",
+    "actions": {
+      "markEscalated": "Пометить как эскалированный"
+    },
+    "simulatedIncoming": "Новое сообщение (симуляция)",
+    "escalatedMockMessage": "Диалог эскалирован. Теперь менеджеры могут отвечать."
+  },
+
+
+  "chatThread": {
+    "back": "Назад",
+    "escalatedToManager": "Эскалировано менеджеру",
+    "markEscalated": "Пометить как эскалированное",
+    "markRead": "Пометить прочитанным",
+    "productLinkLabel": "Ссылка на продукт:",
+    "receiptLabel": "Квитанция:",
+    "receiptOrder": "Заказ",
+    "receiptTotal": "Итого",
+    "notEscalatedNotice": "Диалог не эскалирован. Менеджеры могут отвечать только после эскалации.",
+    "placeholderMessage": "Написать сообщение...",
+    "send": "Отправить",
+    "insertProductLink": "Вставить ссылку на продукт",
+    "sendReceipt": "Отправить квитанцию",
+    "attachment": "Вложение:"
+  },
+
+  "topbar": {
+    "title": "Платформа поставщика",
+    "notifications": "Уведомления",
+    "noNotifications": "Нет новых уведомлений"
+  },
+  "notifications": {
+    "orderPending": "Новый заказ #1053 ожидает подтверждения",
+    "complaintEscalated": "Жалоба передана вам",
+    "newLinkRequest": "Новый запрос на привязку клиента"
+  },
+  "authLogin": {
+    "login": "Войти",
+    "logout": "Выйти"
+  },
+
+  "layout": {
+    "menu": "Меню"
+  },
+
+
+  "sidebar": {
+    "home": "Главная",
+    "complaints": "Жалобы",
+    "ownerDashboard": "Панель владельца",
+    "managerDashboard": "Панель менеджера",
+    "staffManagement": "Управление персоналом",
+    "productManagement": "Управление товарами",
+    "chats": "Чаты",
+    "profileSettings": "Профиль и настройки",
+    "linkManagement": "Управление связями",
+    "orderManagement": "Управление заказами"
+  },
+
+  "links": {
+    "title": "Управление связями",
+    "pending": "Ожидающие запросы",
+    "noPending": "Нет ожидающих запросов",
+    "consumer": "Потребитель",
+    "requestedAt": "Дата запроса",
+    "actions": "Действия",
+    "approve": "Одобрить",
+    "deny": "Отклонить",
+    "block": "Заблокировать",
+    "linked": "Связанные потребители",
+    "noLinked": "Нет связанных потребителей",
+    "linkedAt": "Дата связи",
+    "unlink": "Удалить / Отвязать",
+    "alertBlocked": "Потребитель заблокирован."
+  },
+
+  "login": {
+    "title": "Вход",
+    "username": "Имя пользователя",
+    "password": "Пароль",
+    "showPassword": "Показать пароль",
+    "testRole": "Войти как (ТЕСТ):",
+    "role": {
+      "owner": "Владелец",
+      "manager": "Менеджер",
+      "sales": "Торговый представитель"
+    },
+    "button": "Войти",
+    "forgot": "Забыли пароль?"
+  },
+
+  "manager": {
+    "title": "Панель менеджера",
+    "stats": {
+      "pendingOrders": "Ожидающие заказы",
+      "openComplaints": "Открытые жалобы",
+      "activeSalesmen": "Активные торговые представители"
+    },
+    "pendingOrders": {
+      "title": "Ожидающие заказы",
+      "orderId": "ID заказа",
+      "consumer": "Клиент",
+      "salesman": "Торговый представитель",
+      "date": "Дата",
+      "amount": "Сумма",
+      "actions": "Действия"
+    },
+
+    "buttons": {
+      "accept": "Принять",
+      "reject": "Отклонить",
+      "resolve": "Решить",
+      "escalate": "Эскалировать"
+    },
+    "actions": {
+      "accepted": "Заказ принят",
+      "rejected": "Заказ отклонён",
+      "resolved": "Жалоба решена",
+      "escalated": "Жалоба эскалирована"
+    },
+    "status": {
+      "open": "Открыта",
+      "escalated": "Эскалирована"
+    }
+  },
+
+  "orders": {
+    "pending": "В ожидании",
+    "confirmed": "Подтверждён",
+    "in_delivery": "В доставке",
+    "delivered": "Доставлен",
+    "canceled": "Отменён",
+
+    "consumer": "Покупатель",
+    "supplier": "Поставщик",
+    "created_at": "Создан",
+    "requested_delivery": "Желаемая доставка",
+    "items": "Товары",
+    "view": "Просмотр",
+    "details": "Детали заказа",
+    "products": "Продукты",
+
+    "accept": "Принять заказ",
+    "reject": "Отклонить заказ",
+    "mark_delivered": "Отметить как доставленный",
+
+    "no_orders": "Заказы отсутствуют.",
+    "loading": "Загрузка заказов...",
+    "unknown_consumer": "Неизвестный покупатель",
+    "unknown_supplier": "Неизвестный поставщик",
+    "title": "Управление заказами",
+    "subtitle": "Входящие заказы, действия, обработка жалоб",
+    "historyTitle": "История заказов",
+    "id": "ID заказа",
+    "date": "Дата",
+    "customer": "Клиент",
+    "total": "Сумма",
+
+    "orderStatus": {
+      "completed": "Завершён",
+      "canceled": "Отменён",
+      "pending": "В ожидании"
+    },
+
+    "incoming": {
+      "title": "Входящие заказы",
+      "empty": "Нет заказов.",
+      "id": "ID заказа",
+      "consumer": "Клиент",
+      "items": "Товары",
+      "total": "Сумма",
+      "date": "Дата",
+      "status": "Статус",
+      "actions": "Действия"
+    },
+
+
+    "buttons": {
+      "accept": "Принять",
+      "reject": "Отклонить",
+      "respond": "Ответить",
+      "resolve": "Решить"
+    },
+
+    "processed": "Обработано",
+
+    "status": {
+      "pending": "В ожидании",
+      "accepted": "Принят",
+      "rejected": "Отклонён",
+      "escalated": "Эскалирована",
+      "resolved": "Решена"
+    },
+
+    "confirm": {
+      "rejectOrder": "Отклонить этот заказ?",
+      "resolveComplaint": "Отметить жалобу как решённую?"
+    }
+  },
+
+  "owner": {
+    "pendingOrders": "Ожидающие заказы",
+    "ordersToday": "Заказы за сегодня",
+    "linkedConsumers": "Привязанные потребители",
+    "noPendingOrders": "Нет ожидающих заказов",
+    "consumerLinkRequests": "Запросы на привязку потребителей",
+    "noNewRequests": "Новых запросов нет",
+    "requested": "Запрошено",
+    "recentOrderActivity": "Последняя активность по заказам",
+    "complaintsIncidents": "Жалобы и инциденты",
+    "date": "Дата",
+    "order": "Заказ",
+    "severity": "Серьезность",
+    "status": "Статус"
+  },
+    "accept": "Принять",
+    "reject": "Отклонить",
+    "approve": "Одобрить",
+    "deny": "Отказать",
+
+
+  "statuses": {
+    "accepted": "Принято",
+    "pending": "В ожидании",
+    "confirmed": "Подтверждён",
+    "rejected": "Отклонён",
+    "cancelled": "Отменён",
+    "delivered": "Доставлен",
+    "open": "Открыто",
+    "in_progress": "В процессе"
+  },
+  "severity": {
+    "high": "Высокая",
+    "medium": "Средняя",
+    "low": "Низкая"
+  },
+
+  "productMgmt": {
+    "title": "Управление товарами",
+    "addProduct": "Добавить товар",
+    "editProduct": "Редактировать товар",
+    "photo": "Фото",
+    "name": "Название",
+    "price": "Цена",
+    "discount": "Скидка",
+    "unit": "Ед. изм.",
+    "category": "Категория",
+    "stock": "Остаток",
+    "leadTime": "Время готовности",
+    "available": "Доступность",
+    "enabled": "Активно",
+    "actions": "Действия",
+    "noImage": "Нет изображения"
+  },
+
+  "form": {
+    "priceWithCurrency": "Цена (₸)",
+    "discountPercent": "Скидка (%)",
+    "stockQty": "Количество на складе",
+    "unitPackaging": "Единица / Упаковка",
+    "deliveryOptions": "Опции доставки",
+    "delivery": "Доставка",
+    "pickup": "Самовывоз",
+    "leadTimeValue": "Значение",
+    "photo": "Фото"
+  },
+
+  "units": {
+    "minutes": "Минуты",
+    "hours": "Часы",
+    "days": "Дни"
+  },
+
+  "tags": {
+    "inStock": "В наличии",
+    "outOfStock": "Нет в наличии",
+    "enabled": "Активно",
+    "disabled": "Отключено"
+  },
+
+  "actions": {
+    "add": "Добавить",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+
+  "auth": {
+    "resetPassword": "Сброс пароля",
+    "resetPasswordDescription": "Пожалуйста, введите ваш email, чтобы сбросить пароль.",
+    "email": "Эл. почта",
+    "sendResetEmail": "Отправить письмо для сброса",
+    "resetEmailSent": "Инструкции по сбросу пароля отправлены на:"
+  },
+
+  "staff": {
+    "noStaff": "Сотрудники не найдены",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "username": "Логин",
+    "userType": "Тип пользователя",
+    "actions": "Действия",
+    "edit": "Изменить",
+    "createStaff": "Добавить сотрудника",
+    "editStaff": "Редактировать сотрудника",
+    "createNewStaff": "Создать нового сотрудника",
+    "position": "Должность",
+    "password": "Пароль",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "id": "ID",
+    "title": "Управление персоналом",
+    "loggedInAs": "Вы вошли как",
+    "addNew": "Добавить нового сотрудника",
+    "fullName": "Полное имя",
+    "email": "Эл. почта",
+    "role": "Роль",
+    "selectRole": "Выберите роль",
+    "manager": "Менеджер",
+    "sales": "Торговый представитель",
+    "addStaff": "Добавить сотрудника",
+    "staffMembers": "Сотрудники",
+    "status": "Статус",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "activate": "Активировать",
+    "deactivate": "Деактивировать",
+    "delete": "Удалить",
+    "confirmDelete": "Вы уверены, что хотите УДАЛИТЬ этого сотрудника? Это действие необратимо.",
+    "dangerZone": "Опасная зона",
+    "deactivateAccount": "Деактивировать аккаунт",
+    "deleteAccount": "Удалить аккаунт",
+    "deleteAccountTriggered": "Запрос на удаление аккаунта поставщика отправлен.",
+    "managerReadOnly": "В роли Менеджера вы имеете доступ только для просмотра."
+  },
+
+  "products": {
+    "title": "Управление товарами",
+    "add": "Добавить товар",
+    "edit": "Редактировать товар",
+    "name": "Название",
+    "description": "Описание",
+    "sku": "Артикул (SKU)",
+    "unit": "Ед. измерения",
+    "price": "Цена",
+    "stock": "Количество на складе",
+    "min_order": "Минимальный заказ",
+    "category": "Категория",
+    "select_category": "Выберите категорию",
+    "image": "Изображение",
+    "no_image": "Нет изображения",
+    "available": "Доступно",
+    "confirm_delete": "Вы уверены, что хотите удалить этот товар?"
+  },
+  "common": {
+    "view": "Открыть",
+    "loading": "Загрузка...",
+    "actions": "Действия",
+    "yes": "Да",
+    "no": "Нет",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "cancel": "Отмена",
+    "save": "Сохранить"
+  },
+
+  "dashboard": {
+    "ordersToday": "Заказы сегодня",
+    "activeConsumers": "Активные покупатели",
+    "inDelivery": "В доставке",
+    "recentOrders": "Последние заказы",
+
+    "id": "ID",
+    "createdAt": "Создано",
+    "requestedDelivery": "Запрошенная доставка",
+    "noOrders": "Заказы не найдены.",
+    "unknownSupplier": "Неизвестный поставщик",
+    "itemsLabel": "товаров",
+    "loading": "Загрузка панели...",
+
+    "orders_today": "Заказы сегодня",
+    "active_consumers": "Активные покупатели",
+    "pending": "Ожидает",
+    "confirmed": "Подтвержден",
+    "in_delivery": "В доставке",
+    "recent_orders": "Последние заказы",
+    "consumer": "Покупатель",
+    "supplier": "Поставщик",
+    "created_at": "Создано",
+    "requested_delivery": "Запрошенная доставка",
+    "items": "Товары",
+    "total": "Сумма",
+    "status": "Статус",
+    "no_orders": "Заказы не найдены.",
+    "unknown_supplier": "Неизвестный поставщик",
+    "items_suffix": "шт"
+  },
+
+  "complaints": {
+    "title": "Жалобы",
+    "open": "Открытые",
+    "in_progress": "В процессе",
+    "resolved": "Решённые",
+    "closed": "Закрытые",
+
+    "id": "ID",
+    "title_col": "Название",
+    "type": "Тип",
+    "severity": "Серьёзность",
+    "created": "Создано",
+    "status": "Статус",
+    "none": "Нет записей",
+
+    "error_load": "Не удалось загрузить жалобы"
+  }
+}

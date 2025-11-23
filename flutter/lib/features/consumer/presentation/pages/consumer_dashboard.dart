@@ -71,11 +71,6 @@ class _ConsumerDashboardState extends State<ConsumerDashboard> {
                 color: Color(0xFF1E3E46),
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Track supplier links, deliveries, and open requests.',
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-            ),
             const SizedBox(height: 20),
             const _SectionTitle(label: 'Link status'),
             const SizedBox(height: 12),
@@ -124,44 +119,6 @@ class _ConsumerDashboardState extends State<ConsumerDashboard> {
                       ),
                     ],
                   ),
-            const SizedBox(height: 28),
-            const _SectionTitle(label: 'Upcoming deliveries'),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Expanded(
-                        child: Text(
-                          'No deliveries scheduled yet',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1E3E46),
-                          ),
-                        ),
-                      ),
-                      Icon(Icons.delivery_dining, color: Color(0xFF21545F)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 28),
             const _SectionTitle(label: 'Quick actions'),
             const SizedBox(height: 14),

@@ -66,6 +66,23 @@ class ConsumerApiService extends ApiService {
     return ConsumerSupplierLink.fromJson(data);
   }
 
+  /// Cancel a pending link request
+  Future<void> cancelLinkRequest({
+    required String token,
+    required int linkId,
+  }) async {
+    final response = await post(
+      '/api/accounts/links/$linkId/cancel/',
+      token: token,
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to cancel link request.',
+      );
+    }
+  }
+
   /// Fetch products for a specific supplier
   Future<List<ConsumerProduct>> fetchSupplierProducts({
     required String token,
@@ -134,18 +151,28 @@ class ConsumerApiService extends ApiService {
 
   /// Fetch all consumer orders
   Future<List<ConsumerOrder>> fetchOrders({required String token}) async {
-    final response = await get('/api/orders/my/consumer/', token: token);
-    if (response.statusCode >= 400) {
-      throw ApiServiceException(
-        extractErrorMessage(response.body) ?? 'Unable to load orders.',
-      );
-    }
+    try {
+      final response = await get('/api/orders/my/consumer/', token: token);
+      if (response.statusCode >= 400) {
+        print('[ERROR] fetchOrders failed with status ${response.statusCode}');
+        print('[ERROR] Response body: ${response.body}');
+        throw ApiServiceException(
+          extractErrorMessage(response.body) ?? 'Unable to load orders.',
+        );
+      }
 
-    final payload = jsonDecode(response.body) as List<dynamic>;
-    return payload
-        .whereType<Map<String, dynamic>>()
-        .map(ConsumerOrder.fromJson)
-        .toList();
+      final payload = jsonDecode(response.body) as List<dynamic>;
+      return payload
+          .whereType<Map<String, dynamic>>()
+          .map(ConsumerOrder.fromJson)
+          .toList();
+    } catch (e) {
+      if (e is ApiServiceException) {
+        rethrow;
+      }
+      print('[ERROR] fetchOrders exception: $e');
+      throw ApiServiceException('Network error: Unable to load orders. Please check your connection.');
+    }
   }
 
   /// Fetch order details by ID
@@ -198,6 +225,23 @@ class ConsumerApiService extends ApiService {
     if (response.statusCode >= 400) {
       throw ApiServiceException(
         extractErrorMessage(response.body) ?? 'Unable to cancel order.',
+      );
+    }
+  }
+
+  /// Complete an order
+  Future<void> completeOrder({
+    required String token,
+    required int orderId,
+  }) async {
+    final response = await post(
+      '/api/orders/$orderId/complete/',
+      token: token,
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to complete order.',
       );
     }
   }

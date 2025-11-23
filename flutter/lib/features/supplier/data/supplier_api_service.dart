@@ -165,6 +165,29 @@ class SupplierApiService extends ApiService {
     }
   }
 
+  Future<SupplierConversation> startConversation({
+    required String token,
+    required int consumerId,
+  }) async {
+    final response = await post(
+      '/api/chat/conversations/',
+      token: token,
+      body: {
+        'consumer': consumerId,
+        'conversation_type': 'supplier_consumer',
+      },
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to start conversation.',
+      );
+    }
+
+    final data = decodeToMap(response.body);
+    return SupplierConversation.fromJson(data);
+  }
+
   Future<void> markConversationRead({
     required String token,
     required int conversationId,

@@ -14,6 +14,7 @@ from .serializers import (
     ConsumerRegisterSerializer,
     ConsumerSupplierLinkSerializer,
     SupplierProfileSerializer,
+    SupplierStaffSerializer,
     UserSerializer,
 )
 
@@ -39,12 +40,57 @@ def me(request):
     return Response(serializer.data)
 
 
+
+def resolve_requester_supplier_id(user):
+    """
+    Helper to determine the supplier_id for the requesting user.
+    - If user is superuser, they might provide ?supplier_id=... (not implemented here, but possible).
+    - If user is staff, we look up their SupplierStaff entry.
+    """
+    if user.is_superuser:
+        return None  # Superuser context might be handled differently in views
+    
+    # Check if user is linked to a supplier
+    try:
+        staff = SupplierStaff.objects.get(user=user)
+        return staff.supplier_id
+    except SupplierStaff.DoesNotExist:
+        return None
+
+
+class IsSupplierOwnerOrManagerOrAdmin(permissions.BasePermission):
+    """
+    Allows access only to:
+    - Superusers
+    - Supplier Owner
+    - Supplier Manager
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        
+        # Check user type or staff role
+        # Assuming user.user_type is set correctly or we check SupplierStaff role
+        # Let's check SupplierStaff role for more precision if needed, 
+        # but for now relying on user_type as per existing logic patterns might be safer if consistent.
+        # However, the new code uses this permission, so let's implement it to match the intent.
+        
+        # If we rely on user_type:
+        if user.user_type in ['supplier_owner', 'supplier_manager']:
+            return True
+            
+        return False
+
+
 class SupplierListView(generics.ListAPIView):
     """
     Список всех верифицированных поставщиков.
     Для теста: ты будешь создавать SupplierProfile через админку.
     """
-    queryset = SupplierProfile.objects.filter(is_verified=True)
+    queryset = SupplierProfile.objects.all().order_by('-is_verified', 'company_name')
     serializer_class = SupplierProfileSerializer
     permission_classes = [permissions.AllowAny]  # пока открыто всем
 
@@ -198,6 +244,36 @@ class BlockLinkView(BaseLinkActionView):
     Поставщик блокирует потребителя (например, после инцидентов).
     """
     new_status = 'blocked'
+
+
+class CancelLinkRequestView(APIView):
+    """
+    Потребитель отменяет (удаляет) свой запрос на линк.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            link = ConsumerSupplierLink.objects.select_related('consumer').get(pk=pk)
+        except ConsumerSupplierLink.DoesNotExist:
+            return Response({"detail": "Link not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        
+        # Проверяем, что это consumer и это его линк
+        try:
+            consumer_profile = ConsumerProfile.objects.get(user=user)
+        except ConsumerProfile.DoesNotExist:
+            return Response({"detail": "Only consumers can cancel requests."}, status=status.HTTP_403_FORBIDDEN)
+
+        if link.consumer != consumer_profile:
+            return Response({"detail": "This is not your request."}, status=status.HTTP_403_FORBIDDEN)
+
+        if link.status != 'pending':
+            return Response({"detail": "Can only cancel pending requests."}, status=status.HTTP_400_BAD_REQUEST)
+
+        link.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConsumerRegisterView(generics.CreateAPIView):
@@ -360,3 +436,103 @@ class UserProfileUpdateView(APIView):
             "first_name": user.first_name,
             "last_name": user.last_name,
         })
+
+
+from .serializers import (
+    StaffCreateSerializer,
+    UserCreateSerializer,
+    UserUpdateSerializer,
+    UserMiniSerializer,
+)
+
+class CreateStaffView(generics.CreateAPIView):
+    queryset = SupplierStaff.objects.all()
+    serializer_class = StaffCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class UserCreateView(generics.CreateAPIView):
+    queryset = get_user_model().objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class UserUpdateView(generics.UpdateAPIView):
+    queryset = get_user_model().objects.all()
+    serializer_class = UserUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class SupplierStaffListCreateView(generics.ListCreateAPIView):
+    """
+    GET /api/accounts/staff/    -> list staff for the requester's supplier (or all if superuser)
+    POST /api/accounts/staff/   -> create staff for the requester's supplier (or any if superuser)
+    """
+    serializer_class = SupplierStaffSerializer
+    permission_classes = [IsSupplierOwnerOrManagerOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return SupplierStaff.objects.select_related("user", "supplier").all()
+
+        supplier_id = resolve_requester_supplier_id(user)
+        if not supplier_id:
+            return SupplierStaff.objects.none()
+
+        return SupplierStaff.objects.select_related("user", "supplier").filter(supplier_id=supplier_id)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if user.is_superuser:
+            # allow admin to create for any supplier (the serializer should accept supplier/user IDs)
+            serializer.save()
+            return
+
+        supplier_id = resolve_requester_supplier_id(user)
+        if not supplier_id:
+            raise PermissionDenied("You are not associated with any supplier.")
+
+        # ensure the provided supplier (if any) matches the requester's supplier
+        supplier = serializer.validated_data.get("supplier", None)
+        if supplier and supplier.id != supplier_id:
+            raise ValidationError("You can only add staff for your own supplier.")
+
+        # if serializer expects user_id (common pattern), serializer.create should handle attaching
+        serializer.save(supplier_id=supplier_id)
+
+
+class SupplierStaffRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET /api/accounts/staff/<pk>/
+    PATCH /api/accounts/staff/<pk>/
+    DELETE /api/accounts/staff/<pk>/
+    """
+    serializer_class = SupplierStaffSerializer
+    permission_classes = [IsSupplierOwnerOrManagerOrAdmin]
+
+    def get_queryset(self):
+        # same scoping logic as list view
+        user = self.request.user
+        if user.is_superuser:
+            return SupplierStaff.objects.select_related("user", "supplier").all()
+
+        supplier_id = resolve_requester_supplier_id(user)
+        if not supplier_id:
+            return SupplierStaff.objects.none()
+
+        return SupplierStaff.objects.select_related("user", "supplier").filter(supplier_id=supplier_id)
+
+    def perform_destroy(self, instance):
+        # Only owners or superuser should be able to physically delete staff if you want that rule:
+        if self.request.user.is_superuser:
+            instance.delete()
+            return
+
+        # If requester is owner allow deletion, if manager deny (business rule)
+        if self.request.user.user_type == "supplier_owner":
+            instance.delete()
+            return
+
+        raise PermissionDenied("Only supplier owner or admin can delete staff entries.")

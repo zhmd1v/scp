@@ -1,0 +1,465 @@
+{
+  "homeTitle": "Жеткізуші–Тұтынушы платформасы",
+  "homeWelcome": "Жүйеге қош келдіңіз.",
+  "profile.title": "Профиль және баптаулар",
+  "profile.subtitle": "Жеткізуші ақпаратыңызды басқару",
+
+  "profile.section.supplierProfile": "Жеткізуші профилі",
+
+  "profile.fields.supplierName": "Жеткізуші атауы",
+  "profile.fields.legalName": "Заңды атауы",
+  "profile.fields.address": "Мекенжай",
+  "profile.fields.phone": "Байланыс телефоны",
+  "profile.fields.email": "Байланыс Email",
+  "profile.fields.logo": "Компания логотипі",
+
+  "profile.logoPreview": "Логотиптің алдын ала қарауы",
+
+  "profile.actions.edit": "Өңдеу",
+  "profile.actions.save": "Өзгерістерді сақтау",
+  "profile.actions.cancel": "Болдырмау",
+
+  "profile.saved": "Профиль сәтті жаңартылды",
+
+  "chat": {
+    "title": "Чаттар / Кіріс жәшігі",
+    "filters": {
+      "all": "Барлық байланысты",
+      "escalated": "Эскалацияланған",
+      "recent": "Жуырдағы"
+    },
+    "empty": "Сөйлесулер жоқ.",
+    "escalatedTag": "Эскалацияланған",
+    "actions": {
+      "markEscalated": "Эскалациялау"
+    },
+    "simulatedIncoming": "Жаңа хабарлама (симуляция)",
+    "escalatedMockMessage": "Сөйлесу эскалацияланды. Енді менеджерлер жауап бере алады."
+  },
+
+  "chatThread": {
+    "back": "Артқа",
+    "escalatedToManager": "Менеджерге эскалацияланды",
+    "markEscalated": "Эскалациялау",
+    "markRead": "Оқылды деп белгілеу",
+    "productLinkLabel": "Өнім сілтемесі:",
+    "receiptLabel": "Чек:",
+    "receiptOrder": "Тапсырыс",
+    "receiptTotal": "Жалпы",
+    "notEscalatedNotice": "Бұл чат эскалацияланбаған. Менеджерлер тек эскалациядан кейін жауап бере алады.",
+    "placeholderMessage": "Хабарлама жазу...",
+    "send": "Жіберу",
+    "insertProductLink": "Өнім сілтемесін қосу",
+    "sendReceipt": "Чекті жіберу",
+    "attachment": "Тіркеме:"
+  },
+
+  "topbar": {
+    "title": "Жеткізуші платформасы",
+    "notifications": "Хабарламалар",
+    "noNotifications": "Жаңа хабарламалар жоқ"
+  },
+  "notifications": {
+    "orderPending": "Жаңа №1053 тапсырысы растауды күтуде",
+    "complaintEscalated": "Шағым сізге жіберілді",
+    "newLinkRequest": "Жаңа тұтынушыны байланыстыру сұранысы"
+  },
+  "authLogin": {
+    "login": "Кіру",
+    "logout": "Шығу"
+  },
+
+  "layout": {
+    "menu": "Меню"
+  },
+
+  "sidebar": {
+    "home": "Басты бет",
+    "complaints": "Шағымдар",
+    "ownerDashboard": "Иесі панелі",
+    "managerDashboard": "Менеджер панелі",
+    "staffManagement": "Қызметкерлерді басқару",
+    "productManagement": "Өнімдерді басқару",
+    "chats": "Чаттар",
+    "linkManagement": "Байланыстарды басқару",
+    "profileSettings": "Профиль және баптаулар",
+    "orderManagement": "Тапсырыстарды басқару"
+  },
+
+  "links": {
+    "title": "Байланыстарды басқару",
+    "pending": "Күтудегі сұраулар",
+    "noPending": "Күтудегі сұраулар жоқ",
+    "consumer": "Тұтынушы",
+    "requestedAt": "Сұрау уақыты",
+    "actions": "Әрекеттер",
+    "approve": "Қабылдау",
+    "deny": "Бас тарту",
+    "block": "Блоктау",
+    "linked": "Байланысқан тұтынушылар",
+    "noLinked": "Байланысқан тұтынушылар жоқ",
+    "linkedAt": "Байланыс уақыты",
+    "unlink": "Жою / Байланысты тоқтату",
+    "alertBlocked": "Тұтынушы блокталды."
+  },
+
+  "login": {
+    "title": "Кіру",
+    "username": "Пайдаланушы аты",
+    "password": "Құпия сөз",
+    "showPassword": "Құпия сөзді көрсету",
+    "testRole": "Рөлді таңдау (ТЕСТ):",
+    "role": {
+      "owner": "Иесі",
+      "manager": "Менеджер",
+      "sales": "Сатушы өкіл"
+    },
+    "button": "Кіру",
+    "forgot": "Құпия сөзді ұмыттыңыз ба?"
+  },
+
+  "manager": {
+    "title": "Менеджер панелі",
+    "stats": {
+      "pendingOrders": "Күтудегі тапсырыстар",
+      "openComplaints": "Ашық шағымдар",
+      "activeSalesmen": "Белсенді сатушылар"
+    },
+    "pendingOrders": {
+      "title": "Күтудегі тапсырыстар",
+      "orderId": "Тапсырыс ID",
+      "consumer": "Тұтынушы",
+      "salesman": "Сатушы",
+      "date": "Күні",
+      "amount": "Сома",
+      "actions": "Әрекеттер"
+    },
+
+    "buttons": {
+      "accept": "Қабылдау",
+      "reject": "Қабылдамау",
+      "resolve": "Шешу",
+      "escalate": "Эскалациялау"
+    },
+    "actions": {
+      "accepted": "Тапсырыс қабылданды",
+      "rejected": "Тапсырыс қабылданбады",
+      "resolved": "Шағым шешілді",
+      "escalated": "Шағым эскалацияланды"
+    },
+    "status": {
+      "open": "Ашық",
+      "escalated": "Эскалацияланған"
+    }
+  },
+
+  "orders": {
+    "pending": "Күтуде",
+    "confirmed": "Расталған",
+    "in_delivery": "Жеткізілуде",
+    "delivered": "Жеткізілді",
+    "canceled": "Болдырылмаған",
+
+    "consumer": "Тұтынушы",
+    "supplier": "Жеткізуші",
+    "created_at": "Құрылған",
+    "requested_delivery": "Жеткізу уақыты",
+    "items": "Тауарлар",
+
+    "view": "Қарау",
+    "details": "Тапсырыс мәліметтері",
+    "products": "Өнімдер",
+
+    "accept": "Тапсырысты қабылдау",
+    "reject": "Тапсырысты бас тарту",
+    "mark_delivered": "Жеткізілді деп белгілеу",
+
+    "no_orders": "Тапсырыстар жоқ.",
+    "loading": "Тапсырыстар жүктелуде...",
+    "unknown_consumer": "Белгісіз тұтынушы",
+    "unknown_supplier": "Белгісіз жеткізуші",
+    "title": "Тапсырыстарды басқару",
+    "subtitle": "Кіріс тапсырыстар, әрекеттер, шағымдарды өңдеу",
+    "historyTitle": "Тапсырыстар тарихы",
+    "id": "Тапсырыс ID",
+    "date": "Күні",
+    "customer": "Тапсырыс беруші",
+    "total": "Жалпы",
+
+    "orderStatus": {
+      "completed": "Аяқталған",
+      "canceled": "Бас тартылған",
+      "pending": "Күтілуде"
+    },
+
+    "incoming": {
+      "title": "Кіріс тапсырыстар",
+      "empty": "Тапсырыстар жоқ.",
+      "id": "Тапсырыс ID",
+      "consumer": "Тұтынушы",
+      "items": "Өнімдер",
+      "total": "Жалпы",
+      "date": "Күні",
+      "status": "Статус",
+      "actions": "Әрекеттер"
+    },
+
+    "buttons": {
+      "accept": "Қабылдау",
+      "reject": "Қабылдамау",
+      "respond": "Жауап беру",
+      "resolve": "Шешу"
+    },
+
+    "processed": "Өңделді",
+
+    "status": {
+      "pending": "Күтуде",
+      "accepted": "Қабылданды",
+      "rejected": "Қабылданбады",
+      "escalated": "Эскалацияланған",
+      "resolved": "Шешілді"
+    },
+
+    "confirm": {
+      "rejectOrder": "Бұл тапсырысты қабылдамау керек пе?",
+      "resolveComplaint": "Шағымды шешілді деп белгілеу керек пе?"
+    }
+  },
+
+  "owner": {
+    "pendingOrders": "Күтудегі тапсырыстар",
+    "ordersToday": "Бүгінгі тапсырыстар",
+    "linkedConsumers": "Тіркелген тұтынушылар",
+    "noPendingOrders": "Күтудегі тапсырыстар жоқ",
+    "consumerLinkRequests": "Тұтынушыларды байланыстыру өтініштері",
+    "noNewRequests": "Жаңа өтініштер жоқ",
+    "requested": "Өтініш берілді",
+    "recentOrderActivity": "Соңғы тапсырыс белсенділігі",
+    "complaintsIncidents": "Шағымдар мен оқиғалар",
+    "date": "Күні",
+    "order": "Тапсырыс",
+    "severity": "Маңыздылығы",
+    "status": "Статус"
+  },
+
+    "accept": "Қабылдау",
+    "reject": "Қабылдамау",
+    "approve": "Бекіту",
+    "deny": "Бас тарту",
+
+  "statuses": {
+    "accepted": "Қабылданды",
+    "pending": "Күтілуде",
+    "confirmed": "Расталды",
+    "rejected": "Қабылданбады",
+    "cancelled": "Болдырылмады",
+    "delivered": "Жеткізілді",
+    "open": "Ашық",
+    "in_progress": "Орындалуда"
+  },
+  "severity": {
+    "high": "Жоғары",
+    "medium": "Орташа",
+    "low": "Төмен"
+  },
+
+  "productMgmt": {
+    "title": "Өнімдерді басқару",
+    "addProduct": "Өнім қосу",
+    "editProduct": "Өнімді өңдеу",
+    "photo": "Фото",
+    "name": "Атауы",
+    "price": "Бағасы",
+    "discount": "Жеңілдік",
+    "unit": "Өлшем бірлігі",
+    "category": "Санат",
+    "stock": "Қор",
+    "leadTime": "Дайын болу уақыты",
+    "available": "Қол жетімділігі",
+    "enabled": "Қосылған",
+    "actions": "Әрекеттер",
+    "noImage": "Фото жоқ"
+  },
+
+  "form": {
+    "priceWithCurrency": "Баға (₸)",
+    "discountPercent": "Жеңілдік (%)",
+    "stockQty": "Қор саны",
+    "unitPackaging": "Өлшем / Қаптама",
+    "deliveryOptions": "Жеткізу опциялары",
+    "delivery": "Жеткізу",
+    "pickup": "Өзі алып кету",
+    "leadTimeValue": "Мәні",
+    "photo": "Фото"
+  },
+
+  "units": {
+    "minutes": "Минут",
+    "hours": "Сағат",
+    "days": "Күн"
+  },
+
+  "tags": {
+    "inStock": "Қоймада бар",
+    "outOfStock": "Қоймада жоқ",
+    "enabled": "Қосылған",
+    "disabled": "Өшірілген"
+  },
+
+  "actions": {
+    "add": "Қосу",
+    "edit": "Өңдеу",
+    "save": "Сақтау",
+    "cancel": "Болдырмау"
+  },
+
+  "auth": {
+    "resetPassword": "Құпия сөзді қалпына келтіру",
+    "resetPasswordDescription": "Құпия сөзді қалпына келтіру үшін email енгізіңіз.",
+    "email": "Email",
+    "sendResetEmail": "Қалпына келтіру хатын жіберу",
+    "resetEmailSent": "Құпия сөзді қалпына келтіру нұсқаулары жіберілді:"
+  },
+
+  "staff": {
+    "noStaff": "Қызметкерлер табылмады",
+    "firstName": "Аты",
+    "lastName": "Тегі",
+    "username": "Пайдаланушы аты",
+    "userType": "Пайдаланушы түрі",
+    "actions": "Әрекеттер",
+    "edit": "Өңдеу",
+    "createStaff": "Қызметкер қосу",
+    "editStaff": "Қызметкерді өңдеу",
+    "createNewStaff": "Жаңа қызметкер құру",
+    "position": "Лауазымы",
+    "password": "Құпиясөз",
+    "cancel": "Болдырмау",
+    "save": "Сақтау",
+    "id": "ID",
+    "title": "Қызметкерлерді басқару",
+    "loggedInAs": "Сіз кірдіңіз:",
+    "addNew": "Жаңа қызметкер қосу",
+    "fullName": "Толық аты-жөні",
+    "email": "Email",
+    "role": "Рөлі",
+    "selectRole": "Рөлді таңдаңыз",
+    "manager": "Менеджер",
+    "sales": "Сату бойынша өкіл",
+    "addStaff": "Қызметкер қосу",
+    "staffMembers": "Қызметкерлер тізімі",
+    "status": "Статус",
+    "active": "Белсенді",
+    "inactive": "Белсенді емес",
+    "activate": "Белсендіру",
+    "deactivate": "Белсенділікті тоқтату",
+    "delete": "Жою",
+    "confirmDelete": "Бұл қызметкерді ЖОЮҒА сенімдісіз бе? Бұл әрекет қайтарылмайды.",
+    "dangerZone": "Қауіпті аймақ",
+    "deactivateAccount": "Аккаунтты тоқтату",
+    "deleteAccount": "Аккаунтты жою",
+    "deleteAccountTriggered": "Жеткізуші аккаунтын жою сұранысы жіберілді.",
+    "managerReadOnly": "Менеджер ретінде сізде тек көру құқығы бар."
+  },
+
+  "profile": {
+    "section": {
+      "supplierProfile": "Жеткізушы профилі",
+      "settings": "Есептік жазба және жүйе параметрлері"
+    },
+    "settings": {
+      "language": "Тіл",
+      "currency": "Валюта",
+      "timezone": "Уақыт белдеуі",
+      "dateFormat": "Күн форматы",
+      "delivery": "Жеткізу параметрі",
+      "pickup": "Өздігінен алу параметрі",
+      "enableDelivery": "Жеткізуді қосу",
+      "enablePickup": "Өздігінен алуды қосу",
+      "leadTime": "Дайындау уақыты",
+      "leadTimePlaceholder": "мысалы, 1 сағат"
+    }
+  },
+
+  "products": {
+    "title": "Тауарларды басқару",
+    "add": "Тауар қосу",
+    "edit": "Тауарды өңдеу",
+    "name": "Атауы",
+    "description": "Сипаттама",
+    "sku": "SKU / Артикул",
+    "unit": "Өлшем бірлігі",
+    "price": "Бағасы",
+    "stock": "Қор саны",
+    "min_order": "Минималды тапсырыс",
+    "category": "Санат",
+    "select_category": "Санатты таңдаңыз",
+    "image": "Сурет",
+    "no_image": "Сурет жоқ",
+    "available": "Қолжетімді",
+    "confirm_delete": "Бұл тауарды өшіруді растайсыз ба?"
+  },
+  "common": {
+    "loading": "Жүктелуде...",
+    "actions": "Әрекеттер",
+    "yes": "Иә",
+    "no": "Жоқ",
+    "edit": "Өңдеу",
+    "delete": "Өшіру",
+    "cancel": "Болдырмау",
+    "save": "Сақтау",
+    "view": "Көру"
+  },
+
+  "dashboard": {
+    "ordersToday": "Бүгінгі тапсырыстар",
+    "activeConsumers": "Белсенді тұтынушылар",
+    "inDelivery": "Жеткізілуде",
+    "recentOrders": "Соңғы тапсырыстар",
+
+    "id": "ID",
+    "createdAt": "Құрылған уақыты",
+    "requestedDelivery": "Жеткізу уақыты",
+    "noOrders": "Тапсырыстар табылмады.",
+    "unknownSupplier": "Белгісіз жеткізуші",
+    "itemsLabel": "тауар",
+    "loading": "Панель жүктелуде...",
+
+    "orders_today": "Бүгінгі тапсырыстар",
+    "active_consumers": "Белсенді тұтынушылар",
+    "pending": "Күтілуде",
+    "confirmed": "Расталды",
+    "in_delivery": "Жеткізілуде",
+    "recent_orders": "Соңғы тапсырыстар",
+    "consumer": "Тұтынушы",
+    "supplier": "Жеткізуші",
+    "created_at": "Құрылған уақыты",
+    "requested_delivery": "Жеткізу уақыты",
+    "items": "Тауарлар",
+    "total": "Жалпы сома",
+    "status": "Статус",
+    "no_orders": "Тапсырыстар табылмады.",
+    "unknown_supplier": "Белгісіз жеткізуші",
+    "items_suffix": "дана"
+  },
+
+  "complaints": {
+    "title": "Шағымдар",
+    "open": "Ашық",
+    "in_progress": "Өңделуде",
+    "resolved": "Шешілген",
+    "closed": "Жабық",
+
+    "id": "ID",
+    "title_col": "Атауы",
+    "type": "Түрі",
+    "severity": "Маңыздылығы",
+    "created": "Құрылған уақыты",
+    "status": "Мәртебе",
+    "none": "Ештеңе жоқ",
+
+    "error_load": "Шағымдарды жүктеу сәтсіз аяқталды"
+  }
+}
+

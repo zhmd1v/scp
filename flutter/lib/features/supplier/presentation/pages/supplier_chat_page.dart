@@ -229,15 +229,45 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
                 ),
               ],
             ),
-            child: Text(
-              message.text,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF1E3E46),
-              ),
+            child: Column(
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF1E3E46),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatTimestamp(message.sentAt),
+                  style: TextStyle(
+                    color: Colors.black.withOpacity(0.5),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ),
         );
       },
     );
+  }
+
+  String _formatTimestamp(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    } else if (diff.inDays == 0) {
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else {
+      return '${dateTime.day}/${dateTime.month}';
+    }
   }
 }
