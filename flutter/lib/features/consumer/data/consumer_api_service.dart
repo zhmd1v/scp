@@ -202,6 +202,23 @@ class ConsumerApiService extends ApiService {
     }
   }
 
+  /// Complete an order
+  Future<void> completeOrder({
+    required String token,
+    required int orderId,
+  }) async {
+    final response = await post(
+      '/api/orders/$orderId/complete/',
+      token: token,
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to complete order.',
+      );
+    }
+  }
+
   /// Fetch conversations
   Future<List<ConsumerConversation>> fetchConversations({
     required String token,

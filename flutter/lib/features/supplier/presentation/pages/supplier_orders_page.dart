@@ -19,7 +19,6 @@ class _SupplierOrdersPageState extends State<SupplierOrdersPage> {
   late Future<List<SupplierOrder>> _ordersFuture;
   List<SupplierOrder> _orders = [];
   _OrderFilter _filter = _OrderFilter.all;
-  final Set<int> _updatingOrderIds = {};
 
   @override
   void initState() {
@@ -48,61 +47,6 @@ class _SupplierOrdersPageState extends State<SupplierOrdersPage> {
     await _ordersFuture;
   }
 
-  Future<void> _handleOrderAction(
-    SupplierOrder order,
-    SupplierOrderAction action,
-  ) async {
-    final auth = context.read<AuthProvider>();
-    final token = auth.token;
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are not authenticated.')),
-      );
-      return;
-    }
-
-    setState(() {
-      _updatingOrderIds.add(order.id);
-    });
-
-    try {
-      await _api.updateOrderStatus(
-        token: token,
-        orderId: order.id,
-        action: action,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              action == SupplierOrderAction.confirm
-                  ? 'Order #${order.id} confirmed.'
-                  : 'Order #${order.id} rejected.',
-            ),
-          ),
-        );
-      }
-      await _refresh();
-    } on ApiServiceException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _updatingOrderIds.remove(order.id);
-        });
-      }
-    }
-  }
 
   List<SupplierOrder> get _filteredOrders {
     switch (_filter) {
@@ -115,6 +59,7 @@ class _SupplierOrdersPageState extends State<SupplierOrdersPage> {
       case _OrderFilter.all:
         return _orders;
     }
+    return _orders;
   }
 
   @override
@@ -160,19 +105,6 @@ class _SupplierOrdersPageState extends State<SupplierOrdersPage> {
                       final order = orders[index];
                       return _OrderCard(
                         order: order,
-                        isUpdating: _updatingOrderIds.contains(order.id),
-                        onConfirm: order.isPending
-                            ? () => _handleOrderAction(
-                                  order,
-                                  SupplierOrderAction.confirm,
-                                )
-                            : null,
-                        onReject: order.isPending
-                            ? () => _handleOrderAction(
-                                  order,
-                                  SupplierOrderAction.reject,
-                                )
-                            : null,
                       );
                     },
                   ),
@@ -255,15 +187,9 @@ class _StatusTabs extends StatelessWidget {
 class _OrderCard extends StatelessWidget {
   const _OrderCard({
     required this.order,
-    required this.isUpdating,
-    this.onConfirm,
-    this.onReject,
   });
 
   final SupplierOrder order;
-  final bool isUpdating;
-  final VoidCallback? onConfirm;
-  final VoidCallback? onReject;
 
   @override
   Widget build(BuildContext context) {
@@ -330,54 +256,6 @@ class _OrderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (order.isPending)
-            Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: isUpdating ? null : onConfirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF21545F),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 44),
-                        ),
-                        child: isUpdating
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                                ),
-                              )
-                            : const Text('Confirm'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: isUpdating ? null : onReject,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFB3261E),
-                          side: const BorderSide(color: Color(0xFFB3261E)),
-                          minimumSize: const Size(double.infinity, 44),
-                        ),
-                        child: isUpdating
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Reject'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
           OutlinedButton(
             onPressed: () => _openDetails(context, order),
             style: OutlinedButton.styleFrom(
