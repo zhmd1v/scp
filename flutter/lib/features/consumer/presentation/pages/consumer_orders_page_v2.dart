@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../data/consumer_api_service.dart';
 import '../../data/consumer_models.dart';
+import '../../../../features/complaints/data/complaint_api_service.dart';
+import '../../../../features/complaints/data/complaint_models.dart';
 import 'consumer_home_shell.dart';
 
 enum OrderStatusFilter { all, pending, active, completed }
@@ -328,6 +330,7 @@ class _OrderDetailsPage extends StatefulWidget {
 
 class _OrderDetailsPageState extends State<_OrderDetailsPage> {
   final ConsumerApiService _api = ConsumerApiService();
+  final ComplaintApiService _complaintApi = ComplaintApiService();
   bool _isCancelling = false;
   bool _isCompleting = false;
 
@@ -535,6 +538,21 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
                   ),
                 ),
               ),
+            if (!widget.order.isPending && !widget.order.isDraft) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openComplaintSheet,
+                  icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent),
+                  label: const Text('Submit Complaint', style: TextStyle(color: Colors.redAccent)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.redAccent),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -619,6 +637,157 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
     }
   }
 
+  void _openComplaintSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final TextEditingController titleController = TextEditingController();
+        final TextEditingController descController = TextEditingController();
+        String selectedType = 'product';
+        String selectedSeverity = 'medium';
+        bool isSubmitting = false;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Submit Complaint',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: InputDecoration(
+                      labelText: 'Complaint Type',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'product', child: Text('Product Quality')),
+                      DropdownMenuItem(value: 'delivery', child: Text('Delivery Issue')),
+                      DropdownMenuItem(value: 'billing', child: Text('Billing/Price')),
+                      DropdownMenuItem(value: 'service', child: Text('Service/Communication')),
+                      DropdownMenuItem(value: 'other', child: Text('Other')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setSheetState(() => selectedType = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              if (titleController.text.isEmpty || descController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please fill in all fields')),
+                                );
+                                return;
+                              }
+
+                              setSheetState(() => isSubmitting = true);
+
+                              try {
+                                final auth = context.read<AuthProvider>();
+                                final token = auth.token;
+                                if (token == null) throw const AuthException('Not authenticated');
+
+                                await _complaintApi.createComplaint(
+                                  token,
+                                  CreateComplaintRequest(
+                                    supplier: widget.order.supplierId,
+                                    order: widget.order.id,
+                                    title: titleController.text,
+                                    description: descController.text,
+                                    complaintType: selectedType,
+                                    severity: selectedSeverity,
+                                  ),
+                                );
+
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Complaint submitted successfully')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setSheetState(() => isSubmitting = false);
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Submit Complaint'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _completeOrder() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -669,6 +838,7 @@ class _OrderDetailsPageState extends State<_OrderDetailsPage> {
       }
     }
   }
+
 }
 
 class _InfoSection extends StatelessWidget {
