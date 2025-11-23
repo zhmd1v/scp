@@ -156,6 +156,10 @@ class ComplaintStatusUpdateSerializer(serializers.Serializer):
         choices=['open', 'in_progress', 'resolved', 'closed'],
         required=True
     )
+    severity = serializers.ChoiceField(
+        choices=['low', 'medium', 'high', 'critical'],
+        required=False
+    )
     internal_note = serializers.CharField(
         required=False,
         allow_blank=True,

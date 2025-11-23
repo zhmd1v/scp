@@ -249,9 +249,12 @@ class ComplaintStatusUpdateView(APIView):
 
         old_status = complaint.status
         new_status = serializer.validated_data['status']
+        new_severity = serializer.validated_data.get('severity')
         internal_note = serializer.validated_data.get('internal_note', '')
 
         complaint.status = new_status
+        if new_severity:
+            complaint.severity = new_severity
         complaint.assigned_to = user
         complaint.save()
 
