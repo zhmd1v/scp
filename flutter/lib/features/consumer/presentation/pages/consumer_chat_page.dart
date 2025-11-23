@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../../config/api_config.dart';
 import '../../data/consumer_api_service.dart';
 import '../../data/consumer_models.dart';
 import '../../../../providers/auth_provider.dart';
@@ -137,13 +139,18 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
                                         ? CrossAxisAlignment.end
                                         : CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        message.text,
-                                        style: TextStyle(
-                                          color:
-                                              isMe ? Colors.white : const Color(0xFF1E3E46),
+                                      if (message.attachmentUrl != null) ...[
+                                        _buildAttachmentWidget(message.attachmentUrl!, isMe),
+                                        if (message.text.isNotEmpty) const SizedBox(height: 8),
+                                      ],
+                                      if (message.text.isNotEmpty)
+                                        Text(
+                                          message.text,
+                                          style: TextStyle(
+                                            color:
+                                                isMe ? Colors.white : const Color(0xFF1E3E46),
+                                          ),
                                         ),
-                                      ),
                                       const SizedBox(height: 4),
                                       Text(
                                         _formatTimestamp(message.createdAt),
@@ -309,6 +316,129 @@ class _ConsumerChatPageState extends State<ConsumerChatPage> {
       }
     }
   }
+
+  String _buildImageUrl(String attachmentUrl) {
+    if (attachmentUrl.startsWith('http')) {
+      return attachmentUrl;
+    }
+    const baseUrl = kBackendBaseUrl;
+    final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final normalizedPath = attachmentUrl.startsWith('/') ? attachmentUrl : '/$attachmentUrl';
+    return '$normalizedBase$normalizedPath';
+  }
+
+  Widget _buildAttachmentWidget(String attachmentUrl, bool isMe) {
+    final extension = attachmentUrl.split('.').last.toLowerCase();
+    final isImage = ['jpg', 'jpeg', 'png', 'gif'].contains(extension);
+
+    if (isImage) {
+      return GestureDetector(
+        onTap: () => _showFullScreenImage(attachmentUrl),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            _buildImageUrl(attachmentUrl),
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                height: 150,
+                alignment: Alignment.center,
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 150,
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.broken_image,
+                  color: isMe ? Colors.white70 : Colors.grey,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } else {
+      // For PDFs, DOCs, etc., show a file icon with name
+      final fileName = attachmentUrl.split('/').last;
+      IconData fileIcon;
+      if (extension == 'pdf') {
+        fileIcon = Icons.picture_as_pdf;
+      } else if (extension == 'doc' || extension == 'docx') {
+        fileIcon = Icons.description;
+      } else {
+        fileIcon = Icons.insert_drive_file;
+      }
+
+      return GestureDetector(
+        onTap: () {
+          // TODO: Implement file download/viewing
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File: $fileName')),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isMe ? Colors.white.withOpacity(0.2) : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                fileIcon,
+                color: isMe ? Colors.white : const Color(0xFF21545F),
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  fileName,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : const Color(0xFF1E3E46),
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.network(
+                _buildImageUrl(imageUrl),
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.broken_image, color: Colors.white, size: 64);
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MessageInput extends StatelessWidget {
@@ -336,6 +466,11 @@ class _MessageInput extends StatelessWidget {
       ),
       child: Row(
         children: [
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            color: const Color(0xFF21545F),
+            onPressed: () => _pickImage(context),
+          ),
           Expanded(
             child: TextField(
               controller: controller,
@@ -355,6 +490,70 @@ class _MessageInput extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _pickImage(BuildContext context) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.path == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get file path')),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        await _sendImage(context, file.path!);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick file: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendImage(BuildContext context, String imagePath) async {
+    final chatPageState = context.findAncestorStateOfType<_ConsumerChatPageState>();
+    if (chatPageState == null) return;
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+      
+      if (chatPageState.widget.conversationId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot send image: No conversation')),
+        );
+        return;
+      }
+
+      await chatPageState._api.sendMessageWithImage(
+        token: token,
+        conversationId: chatPageState.widget.conversationId!,
+        imagePath: imagePath,
+        text: controller.text.trim().isEmpty ? null : controller.text.trim(),
+      );
+
+      controller.clear();
+      await chatPageState._loadMessages();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send image: $e')),
+        );
+      }
+    }
   }
 }
 

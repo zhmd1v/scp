@@ -165,6 +165,35 @@ class SupplierApiService extends ApiService {
     }
   }
 
+  /// Send a message with an image attachment
+  Future<void> sendMessageWithImage({
+    required String token,
+    required int conversationId,
+    required String imagePath,
+    String? text,
+  }) async {
+    final uri = buildUri('/api/chat/conversations/$conversationId/messages/');
+    final request = http.MultipartRequest('POST', uri);
+    
+    request.headers['Authorization'] = 'Token $token';
+    
+    if (text != null && text.isNotEmpty) {
+      request.fields['text'] = text;
+    }
+    
+    request.files.add(await http.MultipartFile.fromPath('attachment', imagePath));
+    
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Unable to send message with image.',
+      );
+    }
+  }
+
+
   Future<SupplierConversation> startConversation({
     required String token,
     required int consumerId,

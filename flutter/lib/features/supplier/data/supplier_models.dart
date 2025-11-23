@@ -280,6 +280,7 @@ class SupplierMessage {
     this.senderName,
     this.sentAt,
     this.isRead = false,
+    this.attachmentUrl,
   });
 
   factory SupplierMessage.fromJson(
@@ -295,6 +296,7 @@ class SupplierMessage {
       sentAt: _toDateTime(json['sent_at']),
       isRead: json['is_read'] == true,
       isMine: currentUserId != null && senderId == currentUserId,
+      attachmentUrl: json['attachment'] as String?,
     );
   }
 
@@ -305,6 +307,7 @@ class SupplierMessage {
   final DateTime? sentAt;
   final bool isRead;
   final bool isMine;
+  final String? attachmentUrl;
 }
 
 class SupplierProduct {

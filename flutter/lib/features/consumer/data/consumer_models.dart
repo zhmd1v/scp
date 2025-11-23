@@ -427,6 +427,7 @@ class ConsumerMessage {
     required this.isFromMe,
     required this.createdAt,
     this.senderName,
+    this.attachmentUrl,
   });
 
   factory ConsumerMessage.fromJson(
@@ -439,7 +440,8 @@ class ConsumerMessage {
       text: json['text'] as String? ?? '',
       isFromMe: senderId == currentUserId,
       senderName: json['sender_name'] as String?,
-      createdAt: _toDateTime(json['created_at']) ?? DateTime.now(),
+      createdAt: _toDateTime(json['sent_at']) ?? DateTime.now(),
+      attachmentUrl: json['attachment'] as String?,
     );
   }
 
@@ -448,4 +450,5 @@ class ConsumerMessage {
   final bool isFromMe;
   final String? senderName;
   final DateTime createdAt;
+  final String? attachmentUrl;
 }

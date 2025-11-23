@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 
+import '../../../../config/api_config.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../services/api_service.dart';
 import '../../data/supplier_api_service.dart';
@@ -155,13 +157,8 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: _pickFile,
                   icon: const Icon(Icons.attach_file_outlined),
-                  color: const Color(0xFF21545F),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.photo_camera_outlined),
                   color: const Color(0xFF21545F),
                 ),
                 Expanded(
@@ -233,12 +230,17 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  message.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF1E3E46),
+                if (message.attachmentUrl != null) ...[
+                  _buildAttachmentWidget(message.attachmentUrl!, isMe),
+                  if (message.text.isNotEmpty) const SizedBox(height: 8),
+                ],
+                if (message.text.isNotEmpty)
+                  Text(
+                    message.text,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF1E3E46),
+                    ),
                   ),
-                ),
                 const SizedBox(height: 4),
                 Text(
                   _formatTimestamp(message.sentAt),
@@ -269,5 +271,172 @@ class _SupplierChatPageState extends State<SupplierChatPage> {
     } else {
       return '${dateTime.day}/${dateTime.month}';
     }
+  }
+
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.path == null) {
+        if (mounted) {
+          setState(() => _error = 'Failed to get file path');
+        }
+        return;
+      }
+
+      await _sendImage(file.path!);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'Failed to pick file: $e');
+      }
+    }
+  }
+
+  Future<void> _sendImage(String imagePath) async {
+    final auth = context.read<AuthProvider>();
+    final token = auth.token;
+    if (token == null) {
+      setState(() => _error = 'You are not authenticated.');
+      return;
+    }
+
+    try {
+      await _api.sendMessageWithImage(
+        token: token,
+        conversationId: widget.conversationId,
+        imagePath: imagePath,
+        text: _messageController.text.trim().isEmpty ? null : _messageController.text.trim(),
+      );
+      
+      _messageController.clear();
+      await _loadMessages(silent: true);
+    } on ApiServiceException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = 'Failed to send image: $e');
+    }
+  }
+
+  String _buildImageUrl(String attachmentUrl) {
+    if (attachmentUrl.startsWith('http')) {
+      return attachmentUrl;
+    }
+    const baseUrl = kBackendBaseUrl;
+    final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final normalizedPath = attachmentUrl.startsWith('/') ? attachmentUrl : '/$attachmentUrl';
+    return '$normalizedBase$normalizedPath';
+  }
+
+  Widget _buildAttachmentWidget(String attachmentUrl, bool isMe) {
+    final extension = attachmentUrl.split('.').last.toLowerCase();
+    final isImage = ['jpg', 'jpeg', 'png', 'gif'].contains(extension);
+
+    if (isImage) {
+      return GestureDetector(
+        onTap: () => _showFullScreenImage(attachmentUrl),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            _buildImageUrl(attachmentUrl),
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                height: 150,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 150,
+                alignment: Alignment.center,
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              );
+            },
+          ),
+        ),
+      );
+    } else {
+      // For PDFs, DOCs, etc., show a file icon with name
+      final fileName = attachmentUrl.split('/').last;
+      IconData fileIcon;
+      if (extension == 'pdf') {
+        fileIcon = Icons.picture_as_pdf;
+      } else if (extension == 'doc' || extension == 'docx') {
+        fileIcon = Icons.description;
+      } else {
+        fileIcon = Icons.insert_drive_file;
+      }
+
+      return GestureDetector(
+        onTap: () {
+          // TODO: Implement file download/viewing
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('File: $fileName')),
+            );
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isMe ? const Color(0xFF21545F).withOpacity(0.3) : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                fileIcon,
+                color: const Color(0xFF21545F),
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  fileName,
+                  style: const TextStyle(
+                    color: Color(0xFF1E3E46),
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.network(
+                _buildImageUrl(imageUrl),
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.broken_image, color: Colors.white, size: 64);
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
