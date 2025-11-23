@@ -128,6 +128,7 @@ class ComplaintListSerializer(serializers.ModelSerializer):
             'supplier_name',
             'order',
             'title',
+            'description',
             'complaint_type',
             'severity',
             'status',

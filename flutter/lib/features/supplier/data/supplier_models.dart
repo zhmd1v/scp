@@ -150,6 +150,9 @@ class SupplierComplaint {
     this.consumerId,
     this.orderId,
     this.severity,
+    this.complaintType,
+    this.escalationLevel,
+    this.canEscalate = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -163,6 +166,9 @@ class SupplierComplaint {
       description: json['description'] as String? ?? '',
       status: json['status'] as String? ?? 'open',
       severity: json['severity'] as String?,
+      complaintType: json['complaint_type'] as String?,
+      escalationLevel: json['escalation_level'] as String?,
+      canEscalate: json['can_escalate'] as bool? ?? false,
       createdAt: _toDateTime(json['created_at']),
       updatedAt: _toDateTime(json['updated_at']),
     );
@@ -175,6 +181,9 @@ class SupplierComplaint {
   final String description;
   final String status;
   final String? severity;
+  final String? complaintType;
+  final String? escalationLevel;
+  final bool canEscalate;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 

@@ -239,6 +239,18 @@ class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
                       label: 'Severity',
                       value: complaint.severity!,
                     ),
+                  if (complaint.complaintType != null)
+                    _DetailRow(
+                      icon: Icons.category_outlined,
+                      label: 'Type',
+                      value: _complaintTypeLabel(complaint.complaintType!),
+                    ),
+                  if (complaint.escalationLevel != null)
+                    _DetailRow(
+                      icon: Icons.trending_up,
+                      label: 'Escalation Level',
+                      value: _escalationLevelLabel(complaint.escalationLevel!),
+                    ),
                   const SizedBox(height: 12),
                   const Text(
                     'Description',
@@ -331,9 +343,153 @@ class _SupplierComplaintsPageState extends State<SupplierComplaintsPage> {
                       ),
                     ),
                   ),
+                  if (complaint.canEscalate) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showEscalateDialog(complaint),
+                        icon: const Icon(Icons.arrow_upward),
+                        label: const Text('Escalate to Manager'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                          side: const BorderSide(color: Colors.orange),
+                          minimumSize: const Size(double.infinity, 46),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                 ],
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _complaintTypeLabel(String type) {
+    switch (type) {
+      case 'product':
+        return 'Product quality';
+      case 'delivery':
+        return 'Delivery issue';
+      case 'billing':
+        return 'Billing/price';
+      case 'service':
+        return 'Service/communication';
+      case 'other':
+        return 'Other';
+      default:
+        return type;
+    }
+  }
+
+  String _escalationLevelLabel(String level) {
+    switch (level) {
+      case 'sales':
+        return 'Sales Representative';
+      case 'manager':
+        return 'Manager';
+      case 'owner':
+        return 'Owner';
+      default:
+        return level;
+    }
+  }
+
+  void _showEscalateDialog(SupplierComplaint complaint) {
+    final TextEditingController reasonController = TextEditingController();
+    bool isEscalating = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Escalate Complaint'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'This will escalate the complaint to a higher level.',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: reasonController,
+                    decoration: const InputDecoration(
+                      labelText: 'Reason for escalation',
+                      hintText: 'Explain why this needs escalation...',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                    enabled: !isEscalating,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isEscalating ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isEscalating
+                      ? null
+                      : () async {
+                          if (reasonController.text.trim().isEmpty) {
+                            _showSnack('Please provide a reason for escalation');
+                            return;
+                          }
+
+                          setDialogState(() => isEscalating = true);
+
+                          final auth = context.read<AuthProvider>();
+                          final token = auth.token;
+                          if (token == null) {
+                            _showSnack('You are not authenticated.');
+                            setDialogState(() => isEscalating = false);
+                            return;
+                          }
+
+                          try {
+                            await _api.escalateComplaint(
+                              token: token,
+                              complaintId: complaint.id,
+                              reason: reasonController.text.trim(),
+                            );
+                            await _refresh();
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+                            _showSnack(
+                              'Complaint #${complaint.id} escalated successfully.',
+                              backgroundColor: Colors.green,
+                            );
+                          } on ApiServiceException catch (e) {
+                            _showSnack(e.message);
+                            setDialogState(() => isEscalating = false);
+                          } catch (e) {
+                            _showSnack(e.toString());
+                            setDialogState(() => isEscalating = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isEscalating
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Escalate'),
+                ),
+              ],
             );
           },
         );

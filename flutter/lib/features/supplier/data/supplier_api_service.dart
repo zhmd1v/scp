@@ -85,6 +85,25 @@ class SupplierApiService extends ApiService {
     }
   }
 
+  Future<void> escalateComplaint({
+    required String token,
+    required int complaintId,
+    required String reason,
+  }) async {
+    final response = await post(
+      '/api/complaints/$complaintId/escalate/',
+      token: token,
+      body: {'reason': reason},
+    );
+
+    if (response.statusCode >= 400) {
+      throw ApiServiceException(
+        extractErrorMessage(response.body) ?? 'Failed to escalate complaint.',
+      );
+    }
+  }
+
+
   Future<List<SupplierProduct>> fetchSupplierProducts({
     required String token,
     required int supplierId,
