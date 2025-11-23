@@ -81,30 +81,30 @@ export default function LinkManagement() {
                 ) : (
                     <table>
                         <thead>
-                        <tr>
-                            <th>{t("links.consumer")}</th>
-                            <th>{t("links.requestedAt")}</th>
-                            <th>{t("links.actions")}</th>
-                        </tr>
+                            <tr>
+                                <th>{t("links.consumer")}</th>
+                                <th>{t("links.requestedAt")}</th>
+                                <th>{t("links.actions")}</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {pending.map(p => (
-                            <tr key={p.id}>
-                                <td>{p.consumer}</td>
-                                <td>{new Date(p.requested_at).toLocaleDateString()}</td>
-                                <td>
-                                    <button className="approve-btn" onClick={() => approve(p.id)}>
-                                        {t("links.approve")}
-                                    </button>
-                                    <button className="deny-btn" onClick={() => deny(p.id)}>
-                                        {t("links.deny")}
-                                    </button>
-                                    <button className="block-btn" onClick={() => block(p.id)}>
-                                        {t("links.block")}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                            {pending.map(p => (
+                                <tr key={p.id}>
+                                    <td>{p.consumer}</td>
+                                    <td>{new Date(p.requested_at).toLocaleDateString()}</td>
+                                    <td>
+                                        <button className="approve-btn" onClick={() => approve(p.id)}>
+                                            {t("links.approve")}
+                                        </button>
+                                        <button className="deny-btn" onClick={() => deny(p.id)}>
+                                            {t("links.deny")}
+                                        </button>
+                                        <button className="block-btn" onClick={() => block(p.id)}>
+                                            {t("links.block")}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 )}
@@ -119,27 +119,27 @@ export default function LinkManagement() {
                 ) : (
                     <table>
                         <thead>
-                        <tr>
-                            <th>{t("links.consumer")}</th>
-                            <th>{t("links.linkedAt")}</th>
-                            <th>{t("links.actions")}</th>
-                        </tr>
+                            <tr>
+                                <th>{t("links.consumer")}</th>
+                                <th>{t("links.linkedAt")}</th>
+                                <th>{t("links.actions")}</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {linked.map(l => (
-                            <tr key={l.id}>
-                                <td>{l.consumer}</td>
-                                <td>{new Date(l.requested_at).toLocaleDateString()}</td>
-                                <td>
-                                    <button className="unlink-btn" onClick={() => unlink(l.id)}>
-                                        {t("links.unlink")}
-                                    </button>
-                                    <button className="block-btn" onClick={() => block(l.id)}>
-                                        {t("links.block")}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                            {linked.map(l => (
+                                <tr key={l.id}>
+                                    <td>{l.consumer}</td>
+                                    <td>{new Date(l.requested_at).toLocaleDateString()}</td>
+                                    <td>
+                                        <button className="unlink-btn" onClick={() => unlink(l.id)}>
+                                            {t("links.unlink")}
+                                        </button>
+                                        <button className="block-btn" onClick={() => block(l.id)}>
+                                            {t("links.block")}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 )}
