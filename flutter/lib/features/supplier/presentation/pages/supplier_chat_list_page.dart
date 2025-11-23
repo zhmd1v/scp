@@ -43,6 +43,67 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
     await _chatFuture;
   }
 
+  Future<void> _handleLinkTap(SupplierLink link) async {
+    if (link.consumerId == null) return;
+
+    try {
+      final data = await _chatFuture;
+      // Check if conversation exists
+      final existing = data.conversations.firstWhere(
+        (c) => c.consumerId == link.consumerId,
+        orElse: () => SupplierConversation(
+          id: -1,
+          conversationType: '',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      if (existing.id != -1) {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SupplierChatPage(
+              conversationId: existing.id,
+              customerName: link.consumerName ?? 'Consumer #${link.consumerId}',
+              subtitle: 'Consumer chat',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Create new conversation
+      final auth = context.read<AuthProvider>();
+      final token = auth.token;
+      if (token == null) return;
+
+      final newConv = await _api.startConversation(
+        token: token,
+        consumerId: link.consumerId!,
+      );
+
+      if (!mounted) return;
+      // Refresh list to include new conversation
+      _refresh();
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SupplierChatPage(
+            conversationId: newConv.id,
+            customerName: link.consumerName ?? 'Consumer #${link.consumerId}',
+            subtitle: 'Consumer chat',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start chat: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SupplierHomeShell(
@@ -77,7 +138,10 @@ class _SupplierChatListPageState extends State<SupplierChatListPage> {
                   onRefresh: _refresh,
                   child: _tab == _ChatTab.conversations
                       ? _ConversationList(conversations: data.conversations)
-                      : _LinkList(links: data.links),
+                      : _LinkList(
+                          links: data.links,
+                          onTap: _handleLinkTap,
+                        ),
                 );
               },
             ),
@@ -196,9 +260,13 @@ class _ConversationTile extends StatelessWidget {
 }
 
 class _LinkList extends StatelessWidget {
-  const _LinkList({required this.links});
+  const _LinkList({
+    required this.links,
+    required this.onTap,
+  });
 
   final List<SupplierLink> links;
+  final ValueChanged<SupplierLink> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -219,51 +287,54 @@ class _LinkList extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) {
         final link = acceptedLinks[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: const Color(0xFFDDE8EB),
-                child: Text(
-                  (link.consumerId ?? link.id).toString().substring(0, 1),
-                  style: const TextStyle(
-                    color: Color(0xFF21545F),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+        return GestureDetector(
+          onTap: () => onTap(link),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: const Color(0xFFDDE8EB),
+                  child: Text(
+                    (link.consumerId ?? link.id).toString().substring(0, 1),
+                    style: const TextStyle(
+                      color: Color(0xFF21545F),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      link.consumerName ?? 'Consumer #${link.consumerId}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E3E46),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        link.consumerName ?? 'Consumer #${link.consumerId}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E3E46),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.people_outline, color: Color(0xFF21545F)),
-            ],
+                const Icon(Icons.people_outline, color: Color(0xFF21545F)),
+              ],
+            ),
           ),
         );
       },

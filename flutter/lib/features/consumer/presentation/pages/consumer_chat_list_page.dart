@@ -94,17 +94,6 @@ class _ConsumerChatListPageState extends State<ConsumerChatListPage> {
             onRefresh: _refresh,
             child: Column(
               children: [
-                const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Chat with active suppliers or reach out to a new one.',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 12),
                 _ChatTabs(
                   selectedIndex: _selectedTab,
