@@ -2,12 +2,17 @@ from django.db import models
 from django.conf import settings
 
 from accounts.models import ConsumerProfile, SupplierProfile
-from orders.models import Order
 
 
 class Complaint(models.Model):
     """
-    Жалоба от потребителя на поставщика (часто привязана к заказу).
+    Complaint from consumer to supplier (often tied to an order).
+    Escalation workflow: Sales Representative → Manager → Owner
+    
+    According to SRS:
+    - Sales handles first-line complaints
+    - Manager handles escalated complaints
+    - Owner has oversight
     """
     STATUS_CHOICES = [
         ('open', 'Open'),
@@ -31,6 +36,13 @@ class Complaint(models.Model):
         ('other', 'Other'),
     ]
 
+    ESCALATION_LEVEL_CHOICES = [
+        ('sales', 'Sales Representative'),
+        ('manager', 'Manager'),
+        ('owner', 'Owner'),
+    ]
+
+    # Basic Info
     consumer = models.ForeignKey(
         ConsumerProfile,
         on_delete=models.CASCADE,
@@ -42,7 +54,7 @@ class Complaint(models.Model):
         related_name='complaints'
     )
     order = models.ForeignKey(
-        Order,
+        'orders.Order',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -52,6 +64,7 @@ class Complaint(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
 
+    # Classification
     complaint_type = models.CharField(
         max_length=20,
         choices=TYPE_CHOICES,
@@ -68,6 +81,20 @@ class Complaint(models.Model):
         default='open'
     )
 
+    # Escalation Management
+    escalation_level = models.CharField(
+        max_length=20,
+        choices=ESCALATION_LEVEL_CHOICES,
+        default='sales',
+        help_text='Current escalation level: sales → manager → owner'
+    )
+    escalation_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Reason for escalation to higher level'
+    )
+
+    # Assignment & Tracking
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -79,21 +106,135 @@ class Complaint(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_complaints'
+        related_name='assigned_complaints',
+        help_text='Current staff member handling this complaint'
+    )
+    escalated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='escalated_complaints',
+        help_text='Staff member who escalated this complaint'
     )
 
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    escalated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the complaint was last escalated'
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['supplier', 'status']),
+            models.Index(fields=['consumer', 'status']),
+            models.Index(fields=['escalation_level', 'status']),
+        ]
 
     def __str__(self):
-        return f"Complaint #{self.id} - {self.title} ({self.status})"
+        return f"Complaint #{self.id} - {self.title} ({self.status} - {self.escalation_level})"
+
+    def can_escalate(self):
+        """Check if complaint can be escalated to next level"""
+        escalation_order = ['sales', 'manager', 'owner']
+        current_index = escalation_order.index(self.escalation_level)
+        return current_index < len(escalation_order) - 1
+
+    def get_next_escalation_level(self):
+        """Get the next escalation level"""
+        escalation_order = ['sales', 'manager', 'owner']
+        current_index = escalation_order.index(self.escalation_level)
+        if current_index < len(escalation_order) - 1:
+            return escalation_order[current_index + 1]
+        return None
+
+
+class ComplaintResponse(models.Model):
+    """
+    Response/comment on a complaint by supplier staff.
+    Tracks the conversation history and escalation decisions.
+    """
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name='responses'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='complaint_responses'
+    )
+    message = models.TextField()
+    is_internal = models.BooleanField(
+        default=False,
+        help_text='Internal note not visible to consumer'
+    )
+    
+    # Attachments support
+    attachment = models.FileField(
+        upload_to='complaint_responses/',
+        blank=True,
+        null=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Response to Complaint #{self.complaint.id} by {self.user}"
+
+
+class ComplaintEscalation(models.Model):
+    """
+    Log of escalation events for audit trail.
+    """
+    ESCALATION_LEVEL_CHOICES = [
+        ('sales', 'Sales Representative'),
+        ('manager', 'Manager'),
+        ('owner', 'Owner'),
+    ]
+    
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name='escalation_history'
+    )
+    from_level = models.CharField(
+        max_length=20,
+        choices=ESCALATION_LEVEL_CHOICES  # ← ADD THIS
+    )
+    to_level = models.CharField(
+        max_length=20,
+        choices=ESCALATION_LEVEL_CHOICES  # ← ADD THIS
+    )
+    reason = models.TextField()
+    escalated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='escalations_performed'
+    )
+    escalated_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-escalated_at']
+    
+    def __str__(self):
+        return f"Escalation #{self.id}: {self.from_level} → {self.to_level}"
 
 
 class Incident(models.Model):
     """
-    Инцидент, связанный с поставщиком / заказом / жалобой.
-    Обычно создаётся менеджером поставщика на основе жалобы или
-    серьёзной проблемы с выполнением заказа.
+    Incident related to supplier/order/complaint.
+    Usually created by supplier Manager based on complaints or
+    serious issues with order fulfillment.
     """
     STATUS_CHOICES = [
         ('open', 'Open'),
@@ -115,14 +256,14 @@ class Incident(models.Model):
         related_name='incidents'
     )
     order = models.ForeignKey(
-        Order,
+        'orders.Order',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='incidents'
     )
     complaint = models.ForeignKey(
-        'Complaint',
+        Complaint,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -151,6 +292,9 @@ class Incident(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Incident #{self.id} - {self.title} ({self.status})"
