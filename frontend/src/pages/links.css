@@ -1,0 +1,70 @@
+links-page {
+    padding: 20px;
+}
+
+.links-section {
+    margin-top: 25px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 2px 7px rgba(0,0,0,0.06);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+th, td {
+    padding: 10px 12px;
+    text-align: left;
+}
+
+th {
+    background: #f0f2f5;
+}
+
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+button {
+    margin-right: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.approve-btn {
+    background: #2ecc71;
+    color: white;
+}
+.deny-btn {
+    background: #e67e22;
+    color: white;
+}
+.unlink-btn {
+    background: #3498db;
+    color: white;
+}
+.block-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+.empty {
+    color: #777;
+}
+
+table th:last-child,
+table td:last-child {
+    text-align: right;
+}
+
+/* Optional: keep buttons spaced and inline */
+td button {
+    margin-left: 6px;
+    white-space: nowrap;
+}

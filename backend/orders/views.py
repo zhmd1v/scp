@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import Order, OrderItem, OrderStatusHistory
-from .serializers import OrderSerializer
+from .serializers import OrderSerializer, OrderStatusHistorySerializer
 
 from accounts.models import (
     ConsumerProfile,
@@ -14,6 +14,35 @@ from accounts.models import (
 )
 from catalog.models import Product
 
+
+
+
+class OrderStatusHistoryListView(generics.ListAPIView):
+    serializer_class = OrderStatusHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        order_id = self.kwargs.get('order_id')
+        user = self.request.user
+        # Only allow access if user can see the order
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return OrderStatusHistory.objects.none()
+
+        # superuser can see all
+        if user.is_superuser:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        # supplier staff for this order
+        if hasattr(user, 'supplier_staff') and order.supplier == user.supplier_staff.supplier:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        # consumer who owns the order
+        if hasattr(user, 'consumer_profile') and order.consumer == user.consumer_profile:
+            return OrderStatusHistory.objects.filter(order=order)
+
+        return OrderStatusHistory.objects.none()
 
 
 class OrderListCreateView(generics.ListCreateAPIView):

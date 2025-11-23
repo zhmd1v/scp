@@ -1,0 +1,46 @@
+.complaints-page, .complaint-detail {
+    padding: 20px;
+}
+
+.complaints-section {
+    margin-bottom: 40px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+td, th {
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+}
+
+.view-btn {
+    padding: 6px 10px;
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+}
+
+.notes-box {
+    background: #f4f4f4;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.note {
+    margin-bottom: 10px;
+}
+
+.note-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.add-note-btn, .resolve-btn, .progress-btn {
+    padding: 10px 12px;
+    margin-right: 10px;
+}

@@ -151,18 +151,28 @@ class ConsumerApiService extends ApiService {
 
   /// Fetch all consumer orders
   Future<List<ConsumerOrder>> fetchOrders({required String token}) async {
-    final response = await get('/api/orders/my/consumer/', token: token);
-    if (response.statusCode >= 400) {
-      throw ApiServiceException(
-        extractErrorMessage(response.body) ?? 'Unable to load orders.',
-      );
-    }
+    try {
+      final response = await get('/api/orders/my/consumer/', token: token);
+      if (response.statusCode >= 400) {
+        print('[ERROR] fetchOrders failed with status ${response.statusCode}');
+        print('[ERROR] Response body: ${response.body}');
+        throw ApiServiceException(
+          extractErrorMessage(response.body) ?? 'Unable to load orders.',
+        );
+      }
 
-    final payload = jsonDecode(response.body) as List<dynamic>;
-    return payload
-        .whereType<Map<String, dynamic>>()
-        .map(ConsumerOrder.fromJson)
-        .toList();
+      final payload = jsonDecode(response.body) as List<dynamic>;
+      return payload
+          .whereType<Map<String, dynamic>>()
+          .map(ConsumerOrder.fromJson)
+          .toList();
+    } catch (e) {
+      if (e is ApiServiceException) {
+        rethrow;
+      }
+      print('[ERROR] fetchOrders exception: $e');
+      throw ApiServiceException('Network error: Unable to load orders. Please check your connection.');
+    }
   }
 
   /// Fetch order details by ID
