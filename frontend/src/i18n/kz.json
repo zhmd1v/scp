@@ -383,6 +383,10 @@
   },
 
   "products": {
+    "add_category": "Санат қосу",
+    "category_name": "Санат атауы",
+    "category_description": "Сипаттамасы",
+    "error_load_categories": "Санаттарды жүктеу кезінде қате пайда болды",
     "title": "Тауарларды басқару",
     "add": "Тауар қосу",
     "edit": "Тауарды өңдеу",
