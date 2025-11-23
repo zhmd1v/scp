@@ -7,14 +7,18 @@ import "./products.css";
 export default function ProductManagement() {
     const { t } = useTranslation();
     const { user, token } = useAuth();
-    // Fix: Extract supplier_id from the correct nested path
     const supplierId = user?.supplier_staff?.supplier_id || null;
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
+
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [newCategoryDesc, setNewCategoryDesc] = useState("");
 
     const emptyForm = {
         name: "",
@@ -71,7 +75,7 @@ export default function ProductManagement() {
             });
             setCategories(res.data);
         } catch (err) {
-            console.error(t("products.error_load_categories"), err);
+            console.error("Error loading categories:", err);
         }
     };
 
@@ -112,17 +116,12 @@ export default function ProductManagement() {
 
     // SAVE PRODUCT
     const saveProduct = async () => {
-        // Validate supplier association
         if (!supplierId) {
-            console.error("Cannot save product: User is not associated with any supplier");
-            alert(t("products.error_no_supplier") || "You are not associated with any supplier. Please contact your administrator.");
+            alert(t("products.error_no_supplier"));
             return;
         }
 
-        console.log("Form before saving:", form);
-
         const fd = new FormData();
-
         fd.append("supplier", supplierId);
         fd.append("name", form.name);
         fd.append("description", form.description);
@@ -133,19 +132,8 @@ export default function ProductManagement() {
         fd.append("minimum_order_quantity", form.minimum_order_quantity);
         fd.append("is_available", form.is_available);
 
-        if (form.category) {
-            console.log("Appending category:", form.category);
-            fd.append("category_id", form.category);
-        } else {
-            console.log("Category is EMPTY — not appending");
-        }
-
+        if (form.category) fd.append("category_id", form.category);
         if (form.image) fd.append("image", form.image);
-
-        console.log("FormData contents:");
-        for (let pair of fd.entries()) {
-            console.log(pair[0], "=", pair[1]);
-        }
 
         try {
             let res;
@@ -163,16 +151,13 @@ export default function ProductManagement() {
                 );
             }
 
-            console.log("Backend response:", res.data);
-
             setModalOpen(false);
             loadProducts();
         } catch (err) {
             console.error("Error saving product:", err.response?.data || err);
-            alert(t("products.error_save") || `Error: ${err.response?.data?.detail || err.message}`);
+            alert(t("products.error_save"));
         }
     };
-
 
     // DELETE PRODUCT
     const deleteProduct = async (id) => {
@@ -202,77 +187,111 @@ export default function ProductManagement() {
         }
     };
 
+    // CREATE CATEGORY
+    const createCategory = async () => {
+        if (!newCategoryName.trim()) {
+            alert("Category name is required");
+            return;
+        }
+
+        try {
+            await api.post(
+                `/catalog/categories/create/`,
+                {
+                    name: newCategoryName,
+                    description: newCategoryDesc,
+                },
+                { headers: { Authorization: `Token ${token}` } }
+            );
+
+            setCategoryModalOpen(false);
+            setNewCategoryName("");
+            setNewCategoryDesc("");
+
+            loadCategories();
+        } catch (err) {
+            console.error("Error creating category:", err.response?.data || err);
+            alert("Cannot create category");
+        }
+    };
+
     if (loading) return <div>{t("common.loading")}</div>;
 
     return (
         <div className="products-container">
             <h2>{t("products.title")}</h2>
 
-            <button className="btn-add" onClick={openAddModal}>
-                {t("products.add")}
-            </button>
+            <div className="actions-row">
+                <button className="btn-main" onClick={openAddModal}>
+                    {t("products.add")}
+                </button>
+
+                {/* ADD CATEGORY BUTTON */}
+                <button className="btn-main" onClick={() => setCategoryModalOpen(true)}>
+                    {t("products.add_category") || "Add Category"}
+                </button>
+            </div>
 
             <table className="products-table">
                 <thead>
-                    <tr>
-                        <th>{t("products.image")}</th>
-                        <th>{t("products.name")}</th>
-                        <th>{t("products.unit")}</th>
-                        <th>{t("products.price")}</th>
-                        <th>{t("products.stock")}</th>
-                        <th>{t("products.category")}</th>
-                        <th>{t("products.available")}</th>
-                        <th>{t("common.actions")}</th>
-                    </tr>
+                <tr>
+                    <th>{t("products.image")}</th>
+                    <th>{t("products.name")}</th>
+                    <th>{t("products.unit")}</th>
+                    <th>{t("products.price")}</th>
+                    <th>{t("products.stock")}</th>
+                    <th>{t("products.category")}</th>
+                    <th>{t("products.available")}</th>
+                    <th>{t("common.actions")}</th>
+                </tr>
                 </thead>
 
                 <tbody>
-                    {products.map((p) => (
-                        <tr key={p.id}>
-                            <td>
-                                {p.imagePreview ? (
-                                    <img src={p.imagePreview} className="thumb" alt="" />
-                                ) : (
-                                    <div className="thumb placeholder">{t("products.no_image")}</div>
-                                )}
-                            </td>
+                {products.map((p) => (
+                    <tr key={p.id}>
+                        <td>
+                            {p.imagePreview ? (
+                                <img src={p.imagePreview} className="thumb" alt="" />
+                            ) : (
+                                <div className="thumb placeholder">{t("products.no_image")}</div>
+                            )}
+                        </td>
 
-                            <td>{p.name}</td>
-                            <td>{p.unit}</td>
-                            <td>{p.unit_price}</td>
-                            <td>{p.stock_quantity}</td>
-                            <td>{p.category_obj?.name}</td>
+                        <td>{p.name}</td>
+                        <td>{p.unit}</td>
+                        <td>{p.unit_price}</td>
+                        <td>{p.stock_quantity}</td>
+                        <td>{p.category_obj?.name}</td>
 
-                            <td>
-                                <button
-                                    className={p.is_available ? "tag green" : "tag red"}
-                                    onClick={() => toggleAvailability(p)}
-                                >
-                                    {p.is_available ? t("common.yes") : t("common.no")}
-                                </button>
-                            </td>
+                        <td>
+                            <button
+                                className={p.is_available ? "tag green" : "tag red"}
+                                onClick={() => toggleAvailability(p)}
+                            >
+                                {p.is_available ? t("common.yes") : t("common.no")}
+                            </button>
+                        </td>
 
-                            <td>
-                                <button className="btn-edit" onClick={() => openEditModal(p)}>
-                                    {t("common.edit")}
-                                </button>
-                                <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
-                                    {t("common.delete")}
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
+                        <td>
+                            <button className="btn-edit" onClick={() => openEditModal(p)}>
+                                {t("common.edit")}
+                            </button>
+                            <button className="btn-delete" onClick={() => deleteProduct(p.id)}>
+                                {t("common.delete")}
+                            </button>
+                        </td>
+                    </tr>
+                ))}
                 </tbody>
             </table>
 
+            {/* PRODUCT MODAL */}
             {modalOpen && (
                 <div className="modal-overlay">
                     <div className="modal">
-
                         <h3>{editingProduct ? t("products.edit") : t("products.add")}</h3>
 
                         <div className="modal-body">
-
                             <label>{t("products.name")}</label>
                             <input
                                 type="text"
@@ -329,7 +348,6 @@ export default function ProductManagement() {
                                 }
                             />
 
-                            {/* CATEGORY */}
                             <label>{t("products.category")}</label>
                             <select
                                 value={form.category}
@@ -364,7 +382,40 @@ export default function ProductManagement() {
                                 {t("common.save")}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
 
+            {/* CATEGORY MODAL */}
+            {categoryModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>{t("products.add_category")}</h3>
+
+                        <div className="modal-body">
+                            <label>{t("products.category_name") || "Name"}</label>
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                            />
+
+                            <label>{t("products.category_description") || "Description"}</label>
+                            <input
+                                type="text"
+                                value={newCategoryDesc}
+                                onChange={(e) => setNewCategoryDesc(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="modal-footer">
+                            <button className="btn-cancel" onClick={() => setCategoryModalOpen(false)}>
+                                {t("common.cancel")}
+                            </button>
+                            <button className="btn-save" onClick={createCategory}>
+                                {t("common.save")}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

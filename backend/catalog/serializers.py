@@ -11,10 +11,20 @@ from .models import (
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    parent_id = serializers.IntegerField(source="parent.id", read_only=True)
+    parent_name = serializers.CharField(source="parent.name", read_only=True)
+
     class Meta:
         model = Category
-        fields = '__all__'  # пока можно отдавать все поля
-
+        fields = [
+            "id",
+            "name",
+            "description",
+            "parent",       # writable
+            "parent_id",    # read-only
+            "parent_name",  # read-only
+            "created_at"
+        ]
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)

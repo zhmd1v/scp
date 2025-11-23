@@ -135,3 +135,43 @@
     font-weight: bold;
     font-size: 15px;
 }
+
+
+
+.actions-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+/* Make category button identical to product button */
+.btn-add-category {
+    padding: 8px 16px;
+    background: #4caf50;         /* SAME COLOR */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-main {
+    padding: 8px 16px;
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;            /* Forces exact button height */
+    display: inline-flex;
+    align-items: center;       /* Ensures vertical alignment */
+    justify-content: center;
+    height: 40px;              /* Enforces same height for all buttons */
+    box-sizing: border-box;    /* Avoids padding height issues */
+}
+
+.btn-main:hover {
+    background: #449d48;
+}

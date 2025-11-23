@@ -4,6 +4,9 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import BasePermission
+from rest_framework import viewsets, permissions
+from .models import Category
+from .serializers import CategorySerializer
 
 from .models import Product, Catalog, Category
 from .serializers import (
@@ -145,8 +148,8 @@ class CatalogDetailView(generics.RetrieveAPIView):
         return base_qs.filter(supplier_id__in=accepted_supplier_ids, is_active=True)
 
 
-class CategoryListView(generics.ListAPIView):
-    queryset = Category.objects.all()
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all().order_by("name")
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
 

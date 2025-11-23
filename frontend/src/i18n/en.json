@@ -414,6 +414,11 @@
   },
 
   "products": {
+    "add_category": "Add Category",
+    "category_name": "Category Name",
+    "category_description": "Description",
+    "select_category": "Select Category",
+    "error_load_categories": "Failed to load categories",
     "title": "Product Management",
     "add": "Add Product",
     "edit": "Edit Product",
@@ -425,7 +430,6 @@
     "stock": "Stock Quantity",
     "min_order": "Minimum Order Quantity",
     "category": "Category",
-    "select_category": "Select a category",
     "image": "Image",
     "no_image": "No image",
     "available": "Available",
